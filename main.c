@@ -25,7 +25,10 @@
 #include <stdlib.h>
 #include "rogue.h"
 
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+
 FILE *fd_score = NULL;
+int ur_lines, ur_cols;
 
 /* Command line options */
 
@@ -147,6 +150,8 @@ main(int argc, char *argv[])
     init_stones();      /* Set up stone settings of rings */
     init_materials();   /* Set up materials of wands */
     initscr();          /* Start up cursor package */
+    ur_lines = MIN(LINES, 25);
+    ur_cols = MIN(COLS, 80);
     refresh();
     init_names();       /* Set up names of scrolls */
     cbreak();
@@ -154,16 +159,16 @@ main(int argc, char *argv[])
     noecho();           /* Echo off */
     nonl();
 	
-    scale = (float) (LINES * COLS) / (80.0F * 25.0F); /* get food right for     */
+    scale = (float) (ur_lines * ur_cols) / (80.0F * 25.0F); /* get food right for     */
 	                                              /* different screen sizes */
 												  
     food_left = (int) (food_left * scale);
 
     /* Set up windows */
 
-    cw = newwin(LINES, COLS, 0, 0);
-    mw = newwin(LINES, COLS, 0, 0);
-    hw = newwin(LINES, COLS, 0, 0);
+    cw = newwin(ur_lines, ur_cols, 0, 0);
+    mw = newwin(ur_lines, ur_cols, 0, 0);
+    hw = newwin(ur_lines, ur_cols, 0, 0);
 
     if (argc == 2 && argv[1][0] != '\0' && !restore(argv[1]))
         /* Note: restore returns on error only */
@@ -215,7 +220,7 @@ void
 fatal(char *s)
 {
     clear();
-    move(LINES - 2, 0);
+    move(ur_lines - 2, 0);
     printw("%s", s);
     wrefresh(stdscr);
     endwin();

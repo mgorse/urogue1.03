@@ -768,7 +768,7 @@ quit()
 	clear();
 	wclear(cw);
 	wrefresh(cw);
-	move(LINES - 1, 0);
+	move(ur_lines - 1, 0);
 	wrefresh(stdscr);
 	refresh();
 	score((long) pstats.s_exp, pstats.s_lvl, CHICKEN, 0);
@@ -897,7 +897,7 @@ help()
 
 	if (++cnt >= 46 && strp->h_ch && (strp->h_desc != NULL
 	    || wizard)) {
-	    wmove(hw, LINES - 1, 0);
+	    wmove(hw, ur_lines - 1, 0);
 	    wprintw(hw, morestr);
 	    wrefresh(hw);
 	    wait_for(' ');
@@ -905,7 +905,7 @@ help()
 	    cnt = 0;
 	}
     }
-    wmove(hw, LINES - 1, 0);
+    wmove(hw, ur_lines - 1, 0);
     wprintw(hw, morestr);
     wrefresh(hw);
     wait_for(' ');

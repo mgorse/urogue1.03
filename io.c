@@ -158,7 +158,7 @@ status(int display)
         stat_ptr->s_const, max_ptr->s_const,
         stat_ptr->s_pack / 10, stat_ptr->s_carry / 10, foodlev );
 
-    mvwaddstr(cw, LINES - 2, 0, buf);
+    mvwaddstr(cw, ur_lines - 2, 0, buf);
     wclrtoeol(cw);
 
     sprintf(buf, "Lvl:%d Au:%d Hpt:%3d(%3d) Pow:%d(%d) Ac:%d  Exp:%d+%ld  %s",
@@ -172,7 +172,7 @@ status(int display)
         stat_ptr->s_exp,
         cnames[player.t_ctype][min(stat_ptr->s_lvl - 1, 14)]);
 
-    mvwaddstr(cw, LINES - 1, 0, buf);
+    mvwaddstr(cw, ur_lines - 1, 0, buf);
 
     switch(hungry_state)
     {
@@ -292,11 +292,11 @@ add_line(const char *fmt, ...)
     }
     else
     {
-        if ( (line_cnt >= LINES - 2) || (fmt == NULL)) /* end 'o page */
+        if ( (line_cnt >= ur_lines - 2) || (fmt == NULL)) /* end 'o page */
         {
             if (fmt == NULL && !newpage && inv_type == INV_OVER)
             {
-                tw = newwin(line_cnt + 2, COLS, 0, 0);
+                tw = newwin(line_cnt + 2, ur_cols, 0, 0);
                 overwrite(hw, tw);
                 wstandout(tw);
                 mvwaddstr(tw, line_cnt, 0, spacemsg);
@@ -310,7 +310,7 @@ add_line(const char *fmt, ...)
             else
             {
                 wstandout(hw);
-                mvwaddstr(hw, LINES - 1, 0, spacemsg);
+                mvwaddstr(hw, ur_lines - 1, 0, spacemsg);
                 wstandend(hw);
                 wrefresh(hw);
                 w_wait_for(hw, ' ');

@@ -70,7 +70,7 @@ corr_move(int dy, int dx)
 	return;
 
     /* If it is a legal move, just return */
-    if (nh.x >= 0 && nh.x < COLS && nh.y > 0 && nh.y < LINES - 2) {
+    if (nh.x >= 0 && nh.x < ur_cols && nh.y > 0 && nh.y < ur_lines - 2) {
 	ch = winat(nh.y, nh.x);
 	switch (ch) {
 	    case ' ':
@@ -97,7 +97,7 @@ corr_move(int dy, int dx)
 	nh.y = hero.y + dy;
 	nh.x = hero.x + dx;
 
-	if (nh.x < 0 || nh.x > COLS - 1 || nh.y < 1 || nh.y > LINES - 3)
+	if (nh.x < 0 || nh.x > ur_cols - 1 || nh.y < 1 || nh.y > ur_lines - 3)
 	    continue;
 	ch = winat(nh.y, nh.x);
 	switch (ch) {
@@ -168,7 +168,7 @@ do_move(int dy, int dx)
      * Check if he tried to move off the screen or make an illegal
      * diagonal move, and stop him if he did.
      */
-    if (nh.x < 0 || nh.x > COLS - 1 || nh.y < 1 || nh.y >= LINES - 2
+    if (nh.x < 0 || nh.x > ur_cols - 1 || nh.y < 1 || nh.y >= ur_lines - 2
 	|| !diag_ok(&hero, &nh, &player)) {
 	after = fighting = running = FALSE;
 	return;
@@ -1403,9 +1403,9 @@ rndmove(struct thing *who)
     ey = ret.y + 1;
     ex = ret.x + 1;
     for (y = who->t_pos.y - 1; y <= ey; y++)
-	if (y > 0 && y < LINES - 2)
+	if (y > 0 && y < ur_lines - 2)
 	    for (x = who->t_pos.x - 1; x <= ex; x++) {
-		if (x < 0 || x >= COLS)
+		if (x < 0 || x >= ur_cols)
 		    continue;
 		if (step_ok(y, x, NOMONST, who)) {
 		    dest.y = y;

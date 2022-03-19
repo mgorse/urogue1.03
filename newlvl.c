@@ -476,7 +476,7 @@ do_throne()
     rp->r_flags = 0;    /* this room NOT gone */
     rp->r_max.x = 40;
     rp->r_max.y = 10;   /* 10 * 40 room */
-    rp->r_pos.x = (COLS - rp->r_max.x) / 2; /* center horizontal */
+    rp->r_pos.x = (ur_cols - rp->r_max.x) / 2; /* center horizontal */
     rp->r_pos.y = 3;    /* 2nd line */
     draw_room(rp);      /* draw the only room */
 

@@ -120,9 +120,9 @@ teleport()
 		    msg("Use h,j,k,l,y,u,b,n to position cursor, then hit return.");
 	    }
 	    c.y = max(c.y, 1);
-	    c.y = min(c.y, LINES - 3);
+	    c.y = min(c.y, ur_lines - 3);
 	    c.x = max(c.x, 1);
-	    c.x = min(c.x, COLS - 1);
+	    c.x = min(c.x, ur_cols - 1);
 	    wmove(cw, c.y, c.x);
 	    wrefresh(cw);
 	    which = (short) (getchar() & 0177);

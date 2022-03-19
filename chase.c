@@ -546,7 +546,7 @@ chase(struct thing *tp, coord *ee, bool flee)
 		coord   tryp;
 
 		/* Don't try off the board */
-		if ((x < 0) || (x >= COLS) || (y < 1) || (y >= LINES - 2))
+		if ((x < 0) || (x >= ur_cols) || (y < 1) || (y >= ur_lines - 2))
 		    continue;
 
 		/*
@@ -1090,7 +1090,7 @@ can_blink(struct thing *tp)
 	     * Make sure x coordinate is in range and that we are
 	     * not at the player's position
 	     */
-	    if (x < 0 || x >= COLS || index == 4)
+	    if (x < 0 || x >= ur_cols || index == 4)
 		continue;
 
 	    /* Is it OK to move there? */

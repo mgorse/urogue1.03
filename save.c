@@ -65,7 +65,7 @@ save_game(void)
         }
 
         wclear(hw);
-        wmove(hw, LINES - 1, 0);
+        wmove(hw, ur_lines - 1, 0);
         wrefresh(hw);
 
         if ((savefd = fopen(file_name, "w")) == NULL)

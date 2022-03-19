@@ -46,10 +46,10 @@ do_post()
 		return;
 
 	    wstandout(hw);
-	    mvwaddstr(hw, 0, COLS / 2 - 30, "Welcome to Friendly Fiend's Flea Market");
+	    mvwaddstr(hw, 0, ur_cols / 2 - 30, "Welcome to Friendly Fiend's Flea Market");
 	    wstandend(hw);
 	    wclrtoeol(hw);
-	    trans_line();   /* hw,LINES-2,0,"You have xxx transactions
+	    trans_line();   /* hw,ur_lines-2,0,"You have xxx transactions
 		     * left"); */
 	    if (bad_letter) {
 		bad_letter = FALSE;
@@ -61,7 +61,7 @@ do_post()
 	    touchwin(hw);
 	    wrefresh(hw);
 
-	    switch (readchar()) {
+	    switch (readcharw(hw)) {
 		when 'b':
 		    mvwaddstr(hw, 7, 0, "Lets go into the buying section of the store...");
 		    touchwin(hw);
@@ -113,7 +113,7 @@ buy_more:
 		mvwaddstr(hw, 9, 0, "What type of item do you want? ");
 		touchwin(hw);
 		wrefresh(hw);
-		itemtype = readchar();
+		itemtype = readcharw(hw);
 	    }
 	    switch (itemtype) {
 		when	POTION:
@@ -595,5 +595,5 @@ trans_line()
 		max(0, (adorned ? MAXPURCH + 4 : MAXPURCH) - num_transactions), effective_purse);
 	else
 	    sprintf(buf, "You have infinite transactions remaining.");
-	mvwaddstr(hw, LINES - 2, 0, buf);
+	mvwaddstr(hw, ur_lines - 2, 0, buf);
 }

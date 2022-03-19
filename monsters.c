@@ -833,7 +833,7 @@ genocide(int flags)
     struct linked_list  *ip;
     struct thing    *mp;
     struct linked_list  *nip;
-    int pres_monst = 1, num_lines = LINES - 3;
+    int pres_monst = 1, num_lines = ur_lines - 3;
     short   which_monst;
     bool    blessed = flags & ISBLESSED;
     bool    cursed = flags & ISCURSED;

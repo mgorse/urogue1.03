@@ -555,7 +555,7 @@ init_names()
 
     for (i = 0; i < maxscrolls; i++) {
 	cp = prbuf;
-	nwords = rnd(COLS / 20) + 1 + (COLS > 40 ? 1 : 0);
+	nwords = rnd(ur_cols / 20) + 1 + (ur_cols > 40 ? 1 : 0);
 	while (nwords--) {
 	    nsyl = rnd(3) + 1;
 	    while (nsyl--) {

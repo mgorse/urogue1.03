@@ -139,9 +139,9 @@ look(bool wakeup)
     ey = hero.y + 1;
     ex = hero.x + 1;
     for (x = hero.x - 1; x <= ex; x++)
-	if (x >= 0 && x < COLS)
+	if (x >= 0 && x < ur_cols)
 	    for (y = hero.y - 1; y <= ey; y++) {
-		if (y <= 0 || y >= LINES - 2)
+		if (y <= 0 || y >= ur_lines - 2)
 		    continue;
 		if (isalpha(mvwinch(mw, y, x))) {
 		    struct linked_list  *it;
@@ -355,7 +355,7 @@ eat()
 {
     struct object   *obj;
     int amount;
-    float scale = (float) (LINES * COLS) / (25.0F * 80.0F);
+    float scale = (float) (ur_lines * ur_cols) / (25.0F * 80.0F);
 
     if ((obj = get_object(pack, "eat", FOOD, NULL)) == NULL)
 	return;
@@ -1020,7 +1020,7 @@ int get_monster_number(char *message)
 	else
 	    while (pres_monst < nummonst) { /* Print out the
 			     * monsters */
-		int num_lines = LINES - 3;
+		int num_lines = ur_lines - 3;
 
 		wclear(hw);
 		touchwin(hw);
@@ -1036,7 +1036,7 @@ int get_monster_number(char *message)
 		}
 
 		if (pres_monst < nummonst) {
-		    mvwaddstr(hw, LINES - 1, 0, morestr);
+		    mvwaddstr(hw, ur_lines - 1, 0, morestr);
 		    wrefresh(hw);
 		    wait_for(' ');
 		}

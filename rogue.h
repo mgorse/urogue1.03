@@ -1434,6 +1434,9 @@ extern char *ws_made[];     /* What sticks are made of */
 /* main.c */
 
 extern FILE *fd_score;
+extern int ur_lines;
+extern int ur_cols;
+
 int   main(int argc, char *argv[]);
 void  fatal(char *s);
 int rnd(int range);

@@ -77,7 +77,7 @@ geta_player(void)
 
     do
     {
-        wmove(hw, LINES - 1, 0);
+        wmove(hw, ur_lines - 1, 0);
         wclrtoeol(hw);
         mvwaddstr(hw, 0, 0, "Enter the number of a pre-defined character: ");
         wclrtoeol(hw);
@@ -205,7 +205,7 @@ puta_player(void)
         sprintf(pbuf, "I can't seem to open/create urogue.chr.");
         mvwaddstr(hw, 5, 5, pbuf);
         mvwaddstr(hw, 6, 5, "However I'll let you play it anyway!");
-        mvwaddstr(hw, LINES - 1, 0, spacemsg);
+        mvwaddstr(hw, ur_lines - 1, 0, spacemsg);
         wrefresh(hw);
         wait_for(' ');
 

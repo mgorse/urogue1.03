@@ -270,8 +270,8 @@ read_scroll(struct thing *reader, int which, int flags)
 	     * Take all the things we want to keep hidden out of the
 	     * window
 	     */
-	    for (i = 0; i < LINES; i++)
-		for (j = 0; j < COLS; j++) {
+	    for (i = 0; i < ur_lines; i++)
+		for (j = 0; j < ur_cols; j++) {
 		    switch (nch = ch = mvwinch(hw, i, j)) {
 			case SECRETDOOR:
 			    mvaddch(i, j, nch = DOOR);

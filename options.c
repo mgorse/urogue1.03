@@ -88,7 +88,7 @@ option(void)
 
     /* Switch back to original screen */
 
-    mvwaddstr(hw, LINES - 1, 0, spacemsg);
+    mvwaddstr(hw, ur_lines - 1, 0, spacemsg);
     wrefresh(hw);
     wait_for(' ');
     clearok(cw, TRUE);

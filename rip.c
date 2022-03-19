@@ -168,9 +168,9 @@ death(int monst)
     killer = killname(monst,buf);
     mvaddstr(17, 28 - ((int)(strlen(killer) + 1) / 2), killer);
     mvaddstr(18, 28, (sprintf(prbuf, "%2d", lt->tm_year), prbuf));
-    move(LINES - 1, 0);
+    move(ur_lines - 1, 0);
 
-    mvaddstr(LINES - 1, 0, retstr);
+    mvaddstr(ur_lines - 1, 0, retstr);
 
     while ((c = readcharw(stdscr)) != '\n' && c != '\r')
         continue;
@@ -243,7 +243,7 @@ score(long amount, int lvl, int flags, int monst) /*ARGSUSED*/
 
     if (flags != SCOREIT)
     {
-        mvaddstr(LINES - 1, 0, retstr);
+        mvaddstr(ur_lines - 1, 0, retstr);
         refresh();
         fflush(stdout);
         wait_for('\n');
@@ -431,7 +431,7 @@ total_winner(void)
     }
 
     addstr("of the Land Between the Mountains.\n");
-    mvaddstr(LINES - 1, 0, spacemsg);
+    mvaddstr(ur_lines - 1, 0, spacemsg);
     refresh();
     wait_for(' ');
     clear();
@@ -454,7 +454,7 @@ total_winner(void)
 
     if (bag != NULL)
     {
-        mvaddstr(LINES - 1, 0, morestr);
+        mvaddstr(ur_lines - 1, 0, morestr);
         refresh();
         wait_for(' ');
         clear();
@@ -583,10 +583,10 @@ showpack(char *howso)
         mvprintw(cnt, 0, "%d) %s\n", ch, iname);
         ch += 1;
 
-        if (++cnt > LINES - 5 && next(item) != NULL)
+        if (++cnt > ur_lines - 5 && next(item) != NULL)
         {
             cnt = 1;
-            mvaddstr(LINES - 1, 0, morestr);
+            mvaddstr(ur_lines - 1, 0, morestr);
             refresh();
             wait_for(' ');
             clear();
@@ -595,7 +595,7 @@ showpack(char *howso)
 
     if (bag != NULL)
     {
-        mvaddstr(LINES - 1, 0, morestr);
+        mvaddstr(ur_lines - 1, 0, morestr);
         refresh();
         wait_for(' ');
         clear();
@@ -613,10 +613,10 @@ showpack(char *howso)
             mvprintw(cnt, 0, "%d) %s\n", ch, inv_name(obj, UPPERCASE));
             ch += 1;
 
-            if (++cnt > LINES - 5 && next(item) != NULL)
+            if (++cnt > ur_lines - 5 && next(item) != NULL)
             {
                 cnt = 1;
-                mvaddstr(LINES - 1, 0, morestr);
+                mvaddstr(ur_lines - 1, 0, morestr);
                 refresh();
                 wait_for(' ');
                 clear();

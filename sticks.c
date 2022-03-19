@@ -173,7 +173,7 @@ do_zap(struct thing *zapper, int which, int flags)
 	y += delta.y;
 	x += delta.x;
     }
-    if (x >= 0 && x < COLS && y >= 1 && y < LINES - 2 &&
+    if (x >= 0 && x < ur_cols && y >= 1 && y < ur_lines - 2 &&
 	    isalpha(mvwinch(mw, y, x))) {
 	item = find_mons(y, x);
 	tp = THINGPTR(item);
@@ -405,7 +405,7 @@ do_zap(struct thing *zapper, int which, int flags)
 		}
 	    }
 	    if (obolt.o_pos.y >= 0 && obolt.o_pos.x >= 0 &&
-		obolt.o_pos.y < LINES && obolt.o_pos.x < COLS)
+		obolt.o_pos.y < ur_lines && obolt.o_pos.x < ur_cols)
 		mvwaddch(cw, obolt.o_pos.y, obolt.o_pos.x,
 		     show(obolt.o_pos.y, obolt.o_pos.x));
 	}
@@ -715,8 +715,8 @@ do_zap(struct thing *zapper, int which, int flags)
 		if ((rp = roomin(&hero)) == NULL) {
 		    x1 = max(hero.x - 1, 0);
 		    y1 = max(hero.y - 1, 0);
-		    x2 = min(hero.x + 1, COLS - 1);
-		    y2 = min(hero.y + 1, LINES - 3);
+		    x2 = min(hero.x + 1, ur_cols - 1);
+		    y2 = min(hero.y + 1, ur_lines - 3);
 		}
 		else {
 		    x1 = rp->r_pos.x;
@@ -848,7 +848,7 @@ do_zap(struct thing *zapper, int which, int flags)
 		}
 	    }
 	    if (obolt.o_pos.y >= 0 && obolt.o_pos.x >= 0 &&
-		obolt.o_pos.y < LINES && obolt.o_pos.x < COLS)
+		obolt.o_pos.y < ur_lines && obolt.o_pos.x < ur_cols)
 		mvwaddch(cw, obolt.o_pos.y, obolt.o_pos.x,
 		     show(obolt.o_pos.y, obolt.o_pos.x));
 	}
@@ -1283,7 +1283,7 @@ shoot_bolt(struct thing    *shooter,
 		}
 	    }
 	    if (spotpos[x].y >= 0 && spotpos[x].x >= 0 &&
-		spotpos[x].y < LINES && spotpos[x].x < COLS)
+		spotpos[x].y < ur_lines && spotpos[x].x < ur_cols)
 		mvwaddch(cw, spotpos[x].y, spotpos[x].x,
 		     show(spotpos[x].y, spotpos[x].x));
 	}
@@ -1354,7 +1354,7 @@ monster_do_zap(struct thing *zapper, int which, int flags)
 		}
 	    }
 	    if (obolt.o_pos.y >= 0 && obolt.o_pos.x >= 0 &&
-		obolt.o_pos.y < LINES && obolt.o_pos.x < COLS)
+		obolt.o_pos.y < ur_lines && obolt.o_pos.x < ur_cols)
 		mvwaddch(cw, obolt.o_pos.y, obolt.o_pos.x,
 		     show(obolt.o_pos.y, obolt.o_pos.x));
 	when    WS_CANCEL:

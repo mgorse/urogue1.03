@@ -57,8 +57,8 @@ do_maze()
 	rp->r_flags = ISDARK;	/* mazes always dark */
 	rp->r_pos.x = 0;    /* room fills whole screen */
 	rp->r_pos.y = 1;
-	rp->r_max.x = COLS - 1;
-	rp->r_max.y = LINES - 3;
+	rp->r_max.x = ur_cols - 1;
+	rp->r_max.y = ur_lines - 3;
 	draw_maze();	    /* put maze into window */
 
 	/*
@@ -128,15 +128,15 @@ draw_maze()
 	int i, j, more;
 	char	*ptr;
 
-	lines = (LINES - 3) / 2;
-	cols = (COLS - 1) / 2;
-	bits = malloc((unsigned int) ((LINES - 3) * (COLS - 1)));
+	lines = (ur_lines - 3) / 2;
+	cols = (ur_cols - 1) / 2;
+	bits = malloc((unsigned int) ((ur_lines - 3) * (ur_cols - 1)));
 	frontier = malloc((unsigned int) (lines * cols));
 	ptr = frontier;
 	while (ptr < (frontier + (lines * cols)))
 	    *ptr++ = TRUE;
-	for (i = 0; i < LINES - 3; i++) {
-	    for (j = 0; j < COLS - 1; j++) {
+	for (i = 0; i < ur_lines - 3; i++) {
+	    for (j = 0; j < ur_cols - 1; j++) {
 		if (i % 2 == 1 && j % 2 == 1)
 		    *moffset(i, j) = FALSE; /* floor */
 		else
@@ -162,7 +162,7 @@ char    *
 moffset(int y, int x)
 {
 
-	return (bits + (y * (COLS - 1)) + x);
+	return (bits + (y * (ur_cols - 1)) + x);
 }
 
 /*
@@ -249,14 +249,14 @@ crankout()
 {
 	int x, y;
 
-	for (y = 0; y < LINES - 3; y++) {
+	for (y = 0; y < ur_lines - 3; y++) {
 	    move(y + 1, 0);
-	    for (x = 0; x < COLS - 1; x++) {
+	    for (x = 0; x < ur_cols - 1; x++) {
 		if (*moffset(y, x)) {	/* here is a wall */
-		    if (y == 0 || y == LINES - 4)
+		    if (y == 0 || y == ur_lines - 4)
 			    /* top or bottom line */
 			addch('-');
-		    else if (x == 0 || x == COLS - 2)
+		    else if (x == 0 || x == ur_cols - 2)
 			    /* left | right side */
 			addch('|');
 		    else if (y % 2 == 0 && x % 2 == 0) {

@@ -262,8 +262,8 @@ steal()
     new_pos.x = hero.x + delta.x;
 
     /* Anything there? */
-    if (new_pos.y < 0 || new_pos.y > LINES - 3 ||
-	new_pos.x < 0 || new_pos.x > COLS - 1 ||
+    if (new_pos.y < 0 || new_pos.y > ur_lines - 3 ||
+	new_pos.x < 0 || new_pos.x > ur_cols - 1 ||
 	mvwinch(mw, new_pos.y, new_pos.x) == ' ') {
 	msg("%so one to steal from.", (terse) ? "N" : "There is n");
 	return;
@@ -365,8 +365,8 @@ affect()
     new_pos.x = hero.x + delta.x;
 
     /* Anything there? */
-    if (new_pos.y < 0 || new_pos.y > LINES - 3 ||
-	new_pos.x < 0 || new_pos.x > COLS - 1 ||
+    if (new_pos.y < 0 || new_pos.y > ur_lines - 3 ||
+	new_pos.x < 0 || new_pos.x > ur_cols - 1 ||
 	mvwinch(mw, new_pos.y, new_pos.x) == ' ') {
 	msg("Nothing to affect.");
 	return;
