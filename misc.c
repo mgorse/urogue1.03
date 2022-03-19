@@ -23,6 +23,8 @@
 */
 
 #include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
 #include "rogue.h"
 
 /*
@@ -31,8 +33,7 @@
 static char ret_string[40];
 
 char    *
-tr_name(ch)
-char    ch;
+tr_name(char ch)
 {
     char    *s, *prefix;
 
@@ -75,8 +76,8 @@ char    ch;
  * Look: A quick glance all around the player
  */
 
-look(wakeup)
-bool    wakeup;
+void
+look(bool wakeup)
 {
     int x, y;
     char    ch, och;
@@ -299,8 +300,8 @@ bool    wakeup;
  */
 static coord    cp;
 
-secretdoor(y, x)
-int y, x;
+char
+secretdoor(int y, int x)
 {
     struct room *rp;
 
@@ -322,9 +323,7 @@ int y, x;
 static struct linked_list   *next_ll;
 
 struct linked_list  *
-find_obj(y, x, start)
-int y;
-int x, start;
+find_obj(int y, int x, bool start)
 {
     struct linked_list  *obj, *sobj;
     struct object   *op;
@@ -351,12 +350,12 @@ int x, start;
  * eat: He wants to eat something, so let him try
  */
 
+void
 eat()
 {
     struct object   *obj;
     int amount;
-
-    object  *get_object();
+    float scale = (float) (LINES * COLS) / (25.0F * 80.0F);
 
     if ((obj = get_object(pack, "eat", FOOD, NULL)) == NULL)
 	return;
@@ -364,7 +363,7 @@ eat()
 	discard_pack(obj);
     switch (obj->o_which) {
 	when    FD_RATION:
-	    amount = HUNGERTIME + rnd(400) - 200;
+            amount = (int)(scale * (HUNGERTIME + rnd(400) - 200));
 	    if (rnd(100) > 70) {
 		msg("Yuk, this food tastes awful.");
 		pstats.s_exp++;
@@ -373,24 +372,24 @@ eat()
 	    else
 		msg("Yum, that tasted good.");
 	when    FD_FRUIT:
-	    amount = 200 + rnd(HUNGERTIME);
+            amount = (int)(scale * (200 + rnd(HUNGERTIME)));
 	    msg("My, that was a yummy %s.", fruit);
 	when    FD_CRAM:
-	    amount = rnd(HUNGERTIME / 2) + 600;
+            amount = (int)(scale * (rnd(HUNGERTIME / 2) + 600));
 	    msg("The cram tastes dry in your mouth.");
 	when    FD_CAKES:
-	    amount = (HUNGERTIME / 3) + rnd(600);
+            amount = (int)(scale * ((HUNGERTIME / 3) + rnd(600)));
 	    msg("Yum, the honey cakes tasted good.");
 	when    FD_LEMBA:
-	    amount = (HUNGERTIME / 2) + rnd(900);
+            amount = (int)(scale * ((HUNGERTIME / 2) + rnd(900)));
 	    quaff(&player, P_HEALING, ISNORMAL);
 	when    FD_MIRUVOR:
-	    amount = (HUNGERTIME / 3) + rnd(500);
+            amount = (int)(scale * ((HUNGERTIME / 3) + rnd(500)));
 	    quaff(&player, P_HEALING, ISNORMAL);
 	    quaff(&player, P_RESTORE, ISNORMAL);
 	otherwise:
 	    msg("What a strange thing to eat!");
-	    amount = HUNGERTIME;
+            amount = (int)(scale * HUNGERTIME);
     }
     food_left += amount;
     if (obj->o_flags & ISBLESSED) {
@@ -398,7 +397,7 @@ eat()
 	msg("You have a tingling feeling in your mouth.");
     }
     else if (food_left > STOMACHSIZE) {
-	food_left = STOMACHSIZE;
+        food_left = (int)(scale * STOMACHSIZE);
 	msg("You feel satiated and too full to move.");
 	no_command = HOLDTIME;
     }
@@ -413,9 +412,8 @@ eat()
  * been, just in case
  */
 
-chg_str(amt, both, lost)
-int amt;
-bool    both, lost;
+void
+chg_str(int amt, bool both, bool lost)
 {
     int ring_str;   /* ring strengths */
     struct stats    *ptr;   /* for speed */
@@ -450,9 +448,8 @@ bool    both, lost;
  * been, just in case
  */
 
-chg_dext(amt, both, lost)
-int amt;
-bool    both, lost;
+void
+chg_dext(int amt, bool both, bool lost)
 {
     int ring_dext;  /* ring strengths */
     struct stats    *ptr;   /* for speed */
@@ -484,8 +481,8 @@ bool    both, lost;
  * add_haste: add a haste to the player
  */
 
-add_haste(blessed)
-bool    blessed;
+void
+add_haste(bool blessed)
 {
     short   hasttime;
 
@@ -495,8 +492,8 @@ bool    blessed;
 	hasttime = 6;
 
     if (on(player, ISSLOW)) {   /* Is person slow? */
-	extinguish(noslow);
-	noslow();
+	extinguish_fuse(FUSE_NOSLOW);
+	noslow(NULL);
 
 	if (blessed)
 	    hasttime = 4;
@@ -507,11 +504,11 @@ bool    blessed;
     if (on(player, ISHASTE)) {
 	msg("You faint from exhaustion.");
 	no_command += rnd(hasttime);
-	lengthen(nohaste, rnd(hasttime) + (roll(1, 4) * hasttime));
+	lengthen_fuse(FUSE_NOHASTE, rnd(hasttime) + (roll(1, 4) * hasttime));
     }
     else {
 	turn_on(player, ISHASTE);
-	fuse(nohaste, 0, roll(hasttime, hasttime), AFTER);
+	light_fuse(FUSE_NOHASTE, 0, roll(hasttime, hasttime), AFTER);
     }
 }
 
@@ -519,6 +516,7 @@ bool    blessed;
  * aggravate: aggravate all the monsters on this level
  */
 
+void
 aggravate()
 {
     struct linked_list  *mi;
@@ -526,7 +524,7 @@ aggravate()
 
     for (mi = mlist; mi != NULL; mi = next(mi)) {
 	tp = THINGPTR(mi);
-	runto(&tp->t_pos, &hero);
+        chase_it(&tp->t_pos, &player);
 	turn_off(*tp, ISFRIENDLY);
     }
 }
@@ -535,8 +533,7 @@ aggravate()
  * for printfs: if string starts with a vowel, return "n" for an "an"
  */
 char    *
-vowelstr(str)
-char    *str;
+vowelstr(char *str)
 {
     switch (*str) {
     case 'a':
@@ -558,6 +555,7 @@ char    *str;
 /*
  * see if the object is one of the currently used items
  */
+bool
 is_current(obj)
 struct object   *obj;
 {
@@ -579,6 +577,7 @@ struct object   *obj;
 /*
  * set up the direction co_ordinate for use in varios "prefix" commands
  */
+bool
 get_dir()
 {
     char    *prompt;
@@ -640,8 +639,7 @@ get_dir()
  */
 
 bool
-is_wearing(type)
-int type;
+is_wearing(int type)
 {
 #define ISRING(h, r) (cur_ring[h] != NULL && cur_ring[h]->o_which == r)
 
@@ -659,8 +657,7 @@ int type;
  */
 
 bool
-maze_view(y, x)
-int y, x;
+maze_view(int y, int x)
 {
     int start, goal, delta, ycheck, xcheck, absy, absx;
     bool    row;
@@ -717,6 +714,7 @@ int y, x;
 /*
  * listen: listen for monsters less than 5 units away
  */
+void
 listen()
 {
     struct linked_list  *item;
@@ -760,8 +758,8 @@ static char *nothings[] = {
     ""
 };
 
-nothing_message(flags)
-int flags;
+void
+nothing_message(int flags)
 {
     int adverb = rnd(sizeof(nothings) / sizeof(char *));
     bool    blessed = flags & ISBLESSED;
@@ -774,6 +772,7 @@ int flags;
 /*
  * feel_message - print out "You feel <description>."
  */
+void
 feel_message()
 {
     char    *charp;
@@ -834,6 +833,7 @@ feel_message()
 /*
  * const_bonus -    Hit point adjustment for changing levels
  */
+int
 const_bonus()
 {
     int ret_val = -2;
@@ -851,6 +851,7 @@ const_bonus()
 /*
  * int_wis_bonus -  Spell point adjustment for changing levels
  */
+int
 int_wis_bonus()
 {
     int ret_val = -2;
@@ -887,6 +888,7 @@ int_wis_bonus()
     return (ret_val);
 }
 
+void
 electrificate()
 {
     int affect_dist = 4 + player.t_stats.s_lvl / 4;
@@ -924,7 +926,7 @@ electrificate()
 	    turn_off(*tp, ISCHARMED);
 	    turn_on(*tp, ISRUN);
 	    turn_off(*tp, ISDISGUISE);
-	    runto(&tp->t_pos, &hero);
+            chase_it(&tp->t_pos, &player);
 	    fighting = after = running = FALSE;
 	}
     }
@@ -963,7 +965,8 @@ static char *f_plop[] = {
     "black out"
 };
 
-feed_me(hungry_state)
+void
+feed_me(int hungry_state)
 {
     char    *charp, *charp2;
 
@@ -991,8 +994,7 @@ feed_me(hungry_state)
  * get_monster_number - prompt player for a monster on list returns 0 if none
  * selected
  */
-get_monster_number(message)
-char    *message;
+int get_monster_number(char *message)
 {
     int i;
     int pres_monst = 1;
@@ -1003,7 +1005,7 @@ char    *message;
     while (ret_val == -1) {
 	msg("Which monster do you wish to %s? (* for list)", message);
 	if ((get_str(buf, cw)) != NORM)
-	    return;
+	    return 0;
 
 	if ((i = atoi(buf)) != 0)
 	    ret_val = i;
@@ -1062,47 +1064,3 @@ get_monst:
 
     return (ret_val);
 }
-#if 0
-#define FLAGSHIFT   28L
-#define FLAGINDEX   0x0000000fL
-#define FLAGMASK    0x0fffffffL
-/*
- * on - check if a monster flag is on
- */
-on(th, flag)
-struct thing    th;
-long    flag;
-{
-    return (th.t_flags[(flag >> FLAGSHIFT) & FLAGINDEX] & (flag << 4));
-}
-
-/*
- * off - check if a monster flag is off
- */
-off(th, flag)
-struct thing    th;
-long    flag;
-{
-    return !(th.t_flags[(flag >> FLAGSHIFT) & FLAGINDEX] & (flag << 4));
-}
-
-/*
- * turn_on - turn on a monster flag
- */
-turn_on(th, flag)
-struct thing    th;
-long    flag;
-{
-    th.t_flags[(flag >> FLAGSHIFT) & FLAGINDEX] |= (flag << 4);
-}
-
-/*
- * turn_off - turn off a monster flag
- */
-turn_off(th, flag)
-struct thing    th;
-long    flag;
-{
-    th.t_flags[(flag >> FLAGSHIFT) & FLAGINDEX] &= ~(flag << 4);
-}
-#endif

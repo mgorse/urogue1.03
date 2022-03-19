@@ -11,15 +11,15 @@
 */
 
 #include <ctype.h>
+#include <stdlib.h>
 #include "rogue.h"
-#include "death.h"
 
 /*
     apply()
 	apply an artifact
 */
 
-int
+void
 apply()
 {
 struct linked_list  *item;
@@ -74,8 +74,7 @@ if (obj->ar_flags & ISACTIVE) {
  */
 
 bool
-possessed(artifact)
-int artifact;
+possessed(int artifact)
 {
     if ((picked_artifact >> artifact) & 1)
 	return TRUE;
@@ -88,8 +87,7 @@ int artifact;
  */
 
 bool
-is_carrying(artifact)
-int artifact;
+is_carrying(int artifact)
 {
     if ((has_artifact >> artifact) & 1)
 	return TRUE;
@@ -118,10 +116,8 @@ make_artifact()
 /*
  * make a specified artifact
  */
-struct object   *
-new_artifact(which, cur)
-int which;
-struct object   *cur;
+void
+new_artifact(int which, struct object *cur)
 {
     if (which >= maxartifact) {
 	debug("Bad artifact %d.  Random one created.", which);
@@ -151,8 +147,8 @@ struct object   *cur;
 /*
  * do_minor: side effects and minor malevolent effects of artifacts
  */
-do_minor(tr)
-struct object   *tr;
+void
+do_minor(struct object *tr)
 {
     int which;
 
@@ -233,10 +229,10 @@ struct object   *tr;
 	    chg_dext(-1, FALSE, TRUE);
 	    if (off(player, HASITCH)) {
 		turn_on(player, HASITCH);
-		fuse(un_itch, 0, roll(4, 6), AFTER);
+                light_fuse(FUSE_UNITCH, 0, roll(4,6), AFTER);
 	    }
 	    else
-		lengthen(un_itch, roll(4, 6));
+		lengthen_fuse(FUSE_UNITCH, roll(4, 6));
 	when 21:
 	    if (off(player, ISBLIND))
 		msg("Your skin begins to flake and peel.");
@@ -264,17 +260,17 @@ struct object   *tr;
 	when 41:
 	    msg("You are stunned by a psionic blast.");
 	    if (on(player, ISHUH))
-		lengthen(unconfuse, rnd(40) + (HUHDURATION * 3));
+                lengthen_fuse(FUSE_UNCONFUSE, rnd(40) + (HUHDURATION * 3));
 	    else {
-		fuse(unconfuse, 0, rnd(40) + (HUHDURATION * 3), AFTER);
+                light_fuse(FUSE_UNCONFUSE,0,rnd(40)+(HUHDURATION * 3), AFTER);
 		turn_on(player, ISHUH);
 	    }
 	when 42:
 	    msg("You are confused by thousands of voices in your head.");
 	    if (on(player, ISHUH))
-		lengthen(unconfuse, rnd(10) + (HUHDURATION * 2));
+		lengthen_fuse(FUSE_UNCONFUSE, rnd(10) + (HUHDURATION * 2));
 	    else {
-		fuse(unconfuse, 0, rnd(10) + (HUHDURATION * 2), AFTER);
+		light_fuse(FUSE_UNCONFUSE, 0, rnd(10) + (HUHDURATION * 2), AFTER);
 		turn_on(player, ISHUH);
 	    }
 	when 43: hearmsg("You hear voices in the distance.");
@@ -283,9 +279,9 @@ struct object   *tr;
 	    teleport();
 	    if (off(player, ISCLEAR)) {
 		if (on(player, ISHUH))
-		    lengthen(unconfuse, rnd(8) + HUHDURATION);
+		    lengthen_fuse(FUSE_UNCONFUSE, rnd(8) + HUHDURATION);
 		else {
-		    fuse(unconfuse, 0, rnd(8) + HUHDURATION, AFTER);
+		    light_fuse(FUSE_UNCONFUSE, 0, rnd(8) + HUHDURATION, AFTER);
 		    turn_on(player, ISHUH);
 		}
 	    }
@@ -325,9 +321,9 @@ struct object   *tr;
 	    endmsg();
 	    if (off(player, ISCLEAR) && rnd(4) < 3) {
 		if (on(player, ISHUH))
-		    lengthen(unconfuse, rnd(8) + HUHDURATION);
+		    lengthen_fuse(FUSE_UNCONFUSE, rnd(8) + HUHDURATION);
 		else
-		    fuse(unconfuse, 0, rnd(8) + HUHDURATION, AFTER);
+		    light_fuse(FUSE_UNCONFUSE, 0, rnd(8) + HUHDURATION, AFTER);
 		turn_on(player, ISHUH);
 	    }
 	    else
@@ -350,9 +346,9 @@ struct object   *tr;
 	    endmsg();
 	    if (off(player, ISCLEAR) && rnd(4) < 3) {
 		if (on(player, ISHUH))
-		    lengthen(unconfuse, rnd(8) + HUHDURATION);
+		    lengthen_fuse(FUSE_UNCONFUSE, rnd(8) + HUHDURATION);
 		else
-		    fuse(unconfuse, 0, rnd(8) + HUHDURATION, AFTER);
+		    light_fuse(FUSE_UNCONFUSE, 0, rnd(8) + HUHDURATION, AFTER);
 		turn_on(player, ISHUH);
 	    }
 	    else
@@ -421,12 +417,12 @@ struct object   *tr;
 	when 85:
 	    if (on(player, ISDEAF)) {
 		msg("You feel your ears burn for a moment.");
-		lengthen(hear, 2 * PHASEDURATION);
+		lengthen_fuse(FUSE_HEAR, 2 * PHASEDURATION);
 	    }
 	    else {
 		msg("You are suddenly surrounded by silence.");
 		turn_on(player, ISDEAF);
-		fuse(hear, 0, 2 * PHASEDURATION, AFTER);
+		light_fuse(FUSE_HEAR, 0, 2 * PHASEDURATION, AFTER);
 	    }
 	when 86:
 	    {
@@ -446,8 +442,8 @@ struct object   *tr;
 
 		msg("You suddenly feel a chill run up and down your spine.");
 		turn_on(player, ISFLEE);
-		fallpos(&hero, &fear, TRUE);
-		player.t_dest = &fear;
+            player.t_ischasing = FALSE;
+            player.t_chasee = &player;
 	    }
 	when 89:
 	    if (cur_weapon != NULL)
@@ -518,6 +514,7 @@ struct object   *tr;
  *  10. weapon crumbles
  *  11. curse weapon
  */
+void
 do_major()
 {
     int which;
@@ -533,38 +530,38 @@ do_major()
 	when 3:
 	    /* Turn off other body-affecting spells */
 	    if (on(player, ISREGEN)) {
-		extinguish(unregen);
+		extinguish_fuse(FUSE_UNREGEN);
 		turn_off(player, ISREGEN);
 		unregen();
 	    }
 	    if (on(player, NOCOLD)) {
-		extinguish(uncold);
+		extinguish_fuse(FUSE_UNCOLD);
 		turn_off(player, NOCOLD);
 		uncold();
 	    }
 	    if (on(player, NOFIRE)) {
-		extinguish(unhot);
+		extinguish_fuse(FUSE_UNHOT);
 		turn_off(player, NOFIRE);
 		unhot();
 	    }
 	    if (on(player, SUPEREAT)) {
-		lengthen(unsupereat, 2 * PHASEDURATION);
+		lengthen_fuse(FUSE_UNSUPEREAT, 2 * PHASEDURATION);
 		msg("Your body temperature rises still further.");
 	    }
 	    else {
 		msg("You feel very warm all over.");
-		fuse(unsupereat, 0, 2 * PHASEDURATION, AFTER);
+		light_fuse(FUSE_UNSUPEREAT, 0, 2 * PHASEDURATION, AFTER);
 		turn_on(player, SUPEREAT);
 	    }
 	when 4:
 	    msg("You feel yourself moving %sslower.",
 		on(player, ISSLOW) ? "even " : "");
 	    if (on(player, ISSLOW))
-		lengthen(noslow, PHASEDURATION);
+		lengthen_fuse(FUSE_NOSLOW, PHASEDURATION);
 	    else {
 		turn_on(player, ISSLOW);
 		player.t_turn = TRUE;
-		fuse(noslow, 0, PHASEDURATION, AFTER);
+		light_fuse(FUSE_NOSLOW, 0, PHASEDURATION, AFTER);
 	    }
 	when 5: {
 	    int i, num = roll(1, 4);
@@ -664,6 +661,7 @@ do_major()
 /*
  * do_phial: handle powers of the Phial of Galadriel
  */
+void
 do_phial()
 {
     int which;
@@ -705,7 +703,7 @@ do_phial()
 
 	    for (mi = mlist; mi != NULL; mi = next(mi)) {
 		tp = THINGPTR(mi);
-		if (off(*tp, ISUNIQUE) || !save_throw(*tp, VS_MAGIC))
+		if (off(*tp, ISUNIQUE) || !save_throw(VS_MAGIC, tp))
 		    turn_on(*tp, ISHUH);
 	    }
 	}
@@ -717,6 +715,7 @@ do_phial()
 /*
  * do_palantir: handle powers of the Palantir of Might
  */
+void
 do_palantir()
 {
     int which, limit;
@@ -774,6 +773,7 @@ do_palantir()
 /*
  * do_silmaril: handle powers of the Silamril of Ea
  */
+void
 do_silmaril()
 {
     int which;
@@ -822,6 +822,7 @@ do_silmaril()
 /*
  * do_amulet: handle powers of the Amulet of Yendor
  */
+void
 do_amulet()
 {
     int which, limit;
@@ -869,11 +870,10 @@ do_amulet()
 /*
  * do_bag: handle powers of the Magic Purse of Yendor as a bag of holding
  */
-do_bag(obj)
-struct object   *obj;
+void
+do_bag(struct object *obj)
 {
     int which, limit;
-    object  *get_object();
 
     /* Prompt for action */
     msg("How do you wish to apply the Magic Purse of Yendor (* for list)? ");
@@ -913,15 +913,14 @@ struct object   *obj;
 	msg("Your attempt is successful.");
     switch (which) {
 	when 0:
-	    inventory(obj->o_bag, NULL);
+	    inventory(obj->o_bag, 0);
 	when 1: {
 	    object  *new_obj_p; /* what the user
 			     * selected */
 
-	    if ((new_obj_p = get_object(pack, "add", NULL, NULL)) != NULL) {
+	    if ((new_obj_p = get_object(pack, "add", 0, NULL)) != NULL) {
 		rem_pack(new_obj_p);    /* free up pack slot */
-		push_bag(&obj->o_bag, new_obj_p,
-		    new_obj_p->o_type);
+		push_bag(&obj->o_bag, new_obj_p);
 		pack_report(new_obj_p, MESSAGE,
 		    "You just added ");
 	    }
@@ -932,11 +931,11 @@ struct object   *obj;
 	    linked_list *make_item();
 
 	    if ((obj_p = get_object(obj->o_bag, "remove",
-		 NULL, NULL)) != NULL) {
+		 0, NULL)) != NULL) {
 		item_p = make_item(obj_p);  /* attach upper
 				 * structure */
 		if (add_pack(item_p, MESSAGE) != FALSE)
-		    pop_bag(obj->o_bag, obj_p);
+		    pop_bag(&obj->o_bag, obj_p);
 	    }
 	}
 	when 3: quaff(&player, P_TRUESEE, ISBLESSED);
@@ -948,6 +947,7 @@ struct object   *obj;
 /*
  * do_sceptre: handle powers of the Sceptre of Might
  */
+void
 do_sceptre()
 {
     int which, limit;
@@ -1036,6 +1036,7 @@ do_sceptre()
 /*
  * do_wand: handle powers of the Wand of Yendor
  */
+void
 do_wand()
 {
     int which, i;
@@ -1095,6 +1096,7 @@ do_wand()
 /*
  * do_crown: handle powers of the Crown of Might
  */
+void
 do_crown()
 {
     int which, limit;
@@ -1240,6 +1242,7 @@ do_crown()
  * level_eval - have amulet evaluate danger on this level
  */
 
+void
 level_eval()
 {
     int count = 0;

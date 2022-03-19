@@ -22,8 +22,11 @@
     See the file LICENSE.TXT for full copyright and licensing information.
 */
 
+#include <malloc.h>
+#include <string.h>
 #include "rogue.h"
 
+void
 ring_on()
 {
     struct object   *obj;
@@ -134,13 +137,14 @@ ring_on()
 	msg(terse ? "Call it: " : "What do you want to call it? ");
 	if (get_str(buf, cw) == NORM) {
 	    guess_items[TYP_RING][obj->o_which] =
-		new((unsigned int) strlen(buf) + 1);
+		new_alloc((unsigned int) strlen(buf) + 1);
 	    strcpy(guess_items[TYP_RING][obj->o_which], buf);
 	}
 	msg("");
     }
 }
 
+void
 ring_off()
 {
     struct object   *obj;
@@ -187,8 +191,8 @@ ring_off()
 /*
  * how much food does this ring use up?
  */
-ring_eat(hand)
-int hand;
+int
+ring_eat(int hand)
 {
     int ret_val = 0;
     int ac;
@@ -220,10 +224,9 @@ int hand;
  * print ring bonuses
  */
 char    *
-ring_num(obj)
-struct object   *obj;
+ring_num(struct object *obj, char *buf)
 {
-    static char buf[10];
+    char buffer[1024];
 
     buf[0] = '\0';
     if (obj->o_flags & ISKNOW) {
@@ -242,11 +245,11 @@ struct object   *obj;
 	    case R_PIETY:
 	    case R_WIZARD:
 		buf[0] = ' ';
-		strcpy(&buf[1], num(obj->o_ac, 0));
+		strcpy(&buf[1], num(obj->o_ac, 0, buffer));
 	    when    R_DIGEST:
 		buf[0] = ' ';
 		strcpy(&buf[1], num(obj->o_ac < 0 ?
-		obj->o_ac : obj->o_ac - 1, 0));
+		obj->o_ac : obj->o_ac - 1, 0, buffer));
 	    otherwise:
 		if (obj->o_flags & ISCURSED)
 		    strcpy(buf, " cursed");
@@ -259,8 +262,9 @@ struct object   *obj;
  * ring_value -     Return the effect of the specified ring
  */
 #define ISRING(h, r) (cur_ring[h] != NULL && cur_ring[h]->o_which == r)
-ring_value(type)
-int type;
+
+int
+ring_value(int type)
 {
     int result = 0;
 

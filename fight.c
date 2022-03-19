@@ -20,11 +20,11 @@
     All rights reserved.
     
     See the file LICENSE.TXT for full copyright and licensing information.*/
-*/
 
 #include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
 #include "rogue.h"
-#include "death.h"
 
 /*
  * This are the beginning experience levels for all players all further
@@ -57,7 +57,8 @@ struct matrix   att_mat[11] = {
     {7, 25, 1, 0, 2}    /* mn */
 };
 
-do_fight(y, x, tothedeath)
+void
+do_fight(int y, int x, bool tothedeath)
 {
     if (!tothedeath && pstats.s_hpt < max_stats.s_hpt / 3) {
 	if (!terse)
@@ -80,10 +81,8 @@ do_fight(y, x, tothedeath)
  * fight: The player attacks the monster.
  */
 
-fight(mp, weap, thrown)
-coord   *mp;
-struct object   *weap;
-bool    thrown;
+bool
+fight(coord *mp, struct object *weap, bool thrown)
 {
     struct thing    *tp;
     struct linked_list  *item;
@@ -95,7 +94,7 @@ bool    thrown;
      */
     if ((item = find_mons(mp->y, mp->x)) == NULL) {
 	debug("Fight what @ %d,%d", mp->y, mp->x);
-	return;
+	return FALSE;
     }
     tp = THINGPTR(item);
     mname = (on(player, ISBLIND)) ? "it" : monsters[tp->t_index].m_name;
@@ -336,7 +335,7 @@ bool    thrown;
 		/* If monster was suffocating, stop it */
 		if (on(*tp, DIDSUFFOCATE)) {
 		    turn_off(*tp, DIDSUFFOCATE);
-		    extinguish(suffocate);
+		    extinguish_fuse(FUSE_SUFFOCATE);
 		}
 
 		/* If monster held us, stop it */
@@ -374,7 +373,7 @@ bool    thrown;
 	    miss(mname);
     }
     if (curr_mons)
-	runto(mp, &hero);   /* after so that backstabbing can
+	chase_it(mp, &player);  /* after so that backstabbing can
 		     * happen */
     count = 0;
     return did_hit;
@@ -384,14 +383,11 @@ bool    thrown;
  * attack: The monster attacks the player
  */
 
-attack(mp, weapon, thrown)
-struct thing    *mp;
-struct object   *weapon;
-bool    thrown;
+bool
+attack(struct thing *mp, struct object *weapon, bool thrown)
 {
     char    *mname;
     bool    did_hit = FALSE;
-    char    *find_slot();   /* actually (struct delayed_action *) */
     /* If the monster is in a wall, it cannot attack */
     if (on(*mp, ISINWALL))
 	return (FALSE);
@@ -493,10 +489,10 @@ bool    thrown;
 		    else if (off(player, ISUNSMELL))
 			msg("The stench of the %s sickens you.", mname);
 		    if (on(player, HASSTINK))
-			lengthen(unstink, STINKTIME);
+			lengthen_fuse(FUSE_UNSTINK, STINKTIME);
 		    else {
 			turn_on(player, HASSTINK);
-			fuse(unstink, 0, STINKTIME,
+			light_fuse(FUSE_UNSTINK, 0, STINKTIME,
 			    AFTER);
 		    }
 		}
@@ -510,9 +506,9 @@ bool    thrown;
 		if (!is_wearing(R_SUSABILITY)) {
 		    chg_str(-1, FALSE, TRUE);
 		    if (lost_str == 0)
-			fuse(res_strength, 0, CHILLTIME, AFTER);
+			light_fuse(FUSE_RES_STRENGTH, 0, CHILLTIME, AFTER);
 		    else
-			lengthen(res_strength, CHILLTIME);
+			lengthen_fuse(FUSE_RES_STRENGTH, CHILLTIME);
 		}
 	    }
 
@@ -528,7 +524,7 @@ bool    thrown;
 		    msg("You feel a burning itch.");
 		    turn_on(player, HASITCH);
 		    chg_dext(-1, FALSE, TRUE);
-		    fuse(un_itch, 0, roll(4, 6), AFTER);
+		    light_fuse(FUSE_UNITCH, 0, roll(4, 6), AFTER);
 		}
 	    }
 
@@ -570,7 +566,7 @@ bool    thrown;
 		    msg("The wound heals quickly.");
 		else {
 		    turn_on(player, HASDISEASE);
-		    fuse(cure_disease, 0, roll(4, 4) *
+		    light_fuse(FUSE_CURE_DISEASE, 0, roll(4, 4) *
 			SICKTIME, AFTER);
 		    msg(terse ? "You have been diseased."
 		    : "You have contracted a disease!");
@@ -643,12 +639,13 @@ bool    thrown;
 	    /* a hideous monster may cause fear by touching */
 	    if (on(*mp, TOUCHFEAR)) {
 		turn_off(*mp, TOUCHFEAR);
-		if (!save(VS_WAND)
-		    && !(on(player, ISFLEE) && (SAME_POS(player.t_dest,mp->t_pos)))) {
+                if (!save(VS_WAND)&&!(on(player,ISFLEE) &&
+                    (player.t_chasee==mp))) {
 		    if (off(player, SUPERHERO)
 		     && (player.t_ctype != C_PALADIN)) {
 			turn_on(player, ISFLEE);
-			player.t_dest = mp->t_pos;
+                        player.t_ischasing = FALSE;
+                        player.t_chasee = mp;
 			msg("The %s's touch terrifies you.", mname);
 		    }
 		    else
@@ -659,11 +656,11 @@ bool    thrown;
 
 	    /* some monsters will suffocate our hero */
 	    if (on(*mp, CANSUFFOCATE) && (rnd(100) < 15) &&
-		(find_slot(suffocate) == NULL)) {
+		(find_slot(FUSE_SUFFOCATE, FUSE) == NULL)) {
 		turn_on(*mp, DIDSUFFOCATE);
 		msg("The %s is beginning to suffocate you.",
 		    mname);
-		fuse(suffocate, 0, roll(4, 2), AFTER);
+		light_fuse(FUSE_SUFFOCATE, 0, roll(4, 2), AFTER);
 	    }
 
 	    /* don't look now, you will get turned to stone */
@@ -757,7 +754,7 @@ bool    thrown;
 		if (save(VS_MAGIC) || is_wearing(R_SUSABILITY))
 		    msg("You smell an unpleasant odor.");
 		else {
-		    short   odor_str = -(rnd(6) + 1);
+		    int   odor_str = -(rnd(6) + 1);
 
 		    if (on(player, CANSCENT)) {
 			msg("You pass out from a foul odor.");
@@ -767,10 +764,10 @@ bool    thrown;
 			msg("You are overcome by a foul odor.");
 		    if (lost_str == 0) {
 			chg_str(odor_str, FALSE, TRUE);
-			fuse(res_strength, 0, SMELLTIME, AFTER);
+			light_fuse(FUSE_RES_STRENGTH, 0, SMELLTIME, AFTER);
 		    }
 		    else
-			lengthen(res_strength, SMELLTIME);
+			lengthen_fuse(FUSE_RES_STRENGTH, SMELLTIME);
 		}
 	    }
 
@@ -937,8 +934,6 @@ bool    thrown;
 	}
 	m_bounce(weapon, mname);
     }
-    if (fight_flush)
-	flushout();
     count = 0;
     status(FALSE);
     return (did_hit);
@@ -948,11 +943,8 @@ bool    thrown;
 /*
  * mon_mon_attack: A monster attacks another monster
  */
-mon_mon_attack(attacker, mon, weapon, thrown)
-struct thing    *attacker;
-struct linked_list  *mon;
-struct object   *weapon;
-bool    thrown;
+bool
+mon_mon_attack(struct thing *attacker, struct linked_list *mon, struct object *weapon, bool thrown)
 {
     struct thing    *attackee = THINGPTR(mon);
     bool    did_hit = FALSE;
@@ -1003,8 +995,6 @@ bool    thrown;
 
     if (off(*attackee, ISMEAN) && off(*attackee, ISFAMILIAR))
 	turn_on(*attackee, ISRUN);
-    if (fight_flush)
-	flushout();
     count = 0;
     status(FALSE);
     return (did_hit);
@@ -1015,9 +1005,8 @@ bool    thrown;
  * swing: returns true if the swing hits
  */
 
-swing(class, at_lvl, op_arm, wplus)
-short   class;
-int at_lvl, op_arm, wplus;
+int
+swing(int class, int at_lvl, int op_arm, int wplus)
 {
     int res = rnd(20) + 1;
     int need;
@@ -1047,8 +1036,7 @@ void    init_exp()
  * jump
  */
 int
-next_exp_level(print_message)
-bool    print_message;
+next_exp_level(bool print_message)
 {
     int level_jump = 0;
 
@@ -1071,6 +1059,7 @@ bool    print_message;
 /*
  * check_level: Check to see if the guy has gone up a level.
  */
+void
 check_level()
 {
     int num_jumped, j, add;
@@ -1134,11 +1123,8 @@ check_level()
  * roll_em: Roll several attacks
  */
 
-roll_em(att_er, def_er, weap, thrown, cur_weapon)
-struct thing    *att_er, *def_er;
-struct object   *weap;
-bool    thrown;
-struct object   *cur_weapon;
+int
+roll_em(struct thing *att_er, struct thing *def_er, struct object *weap, bool thrown, struct object *cur_weapon)
 {
     struct stats    *att = &att_er->t_stats;
     struct stats    *def = &def_er->t_stats;
@@ -1329,9 +1315,8 @@ struct object   *cur_weapon;
  * prname: Figure out the monsters name
  */
 
-char    *
-prname(who)
-char    *who;
+const char    *
+prname(char *who)
 {
     static char *mon = "monster";
 
@@ -1344,9 +1329,8 @@ char    *who;
 /*
  * hit: Print a message to indicate a succesful hit
  */
-
-hit(ee)
-char    *ee;
+void
+hit(char *ee)
 {
     char    *s;
 
@@ -1380,8 +1364,8 @@ char    *ee;
 /*
  * miss: Print a message to indicate a poor swing
  */
-miss(ee)
-char    *ee;
+void
+miss(char *ee)
 {
     char    *s;
 
@@ -1408,9 +1392,8 @@ char    *ee;
 /*
  * save_throw: See if a creature save against something
  */
-save_throw(which, tp)
-int which;
-struct thing    *tp;
+bool
+save_throw(int which, struct thing *tp)
 {
     int need;
     int ring_bonus = 0;
@@ -1446,8 +1429,8 @@ struct thing    *tp;
  * save: See if he saves against various nasty things
  */
 
-save(which)
-int which;
+bool
+save(int which)
 {
     return save_throw(which, &player);
 }
@@ -1456,8 +1439,8 @@ int which;
  * dext_plus: compute to-hit bonus for dexterity
  */
 
-dext_plus(dexterity)
-int dexterity;
+int
+dext_plus(int dexterity)
 {
     return ((dexterity - 10) / 3);
 }
@@ -1467,8 +1450,8 @@ int dexterity;
  * dext_prot: compute armor class bonus for dexterity
  */
 
-dext_prot(dexterity)
-int dexterity;
+int
+dext_prot(int dexterity)
 {
     return ((dexterity - 9) / 2);
 }
@@ -1484,8 +1467,8 @@ static int  strtohit[] =
     1, 1, 3, 3, 4, 4, 5, 6, 7
 };
 
-str_plus(str)
-short   str;
+int
+str_plus(int str)
 {
     int ret_val = str;
 
@@ -1508,8 +1491,8 @@ static int  str_damage[] =
     1, 2, 7, 8, 9, 10, 11, 12, 14
 };
 
-add_dam(str)
-short   str;
+int
+add_dam(int str)
 {
     int ret_val = str;
 
@@ -1524,6 +1507,7 @@ short   str;
 /*
  * hung_dam: Calculate damage depending on players hungry state
  */
+int
 hung_dam()
 {
     int howmuch;
@@ -1542,6 +1526,7 @@ hung_dam()
  * raise_level: The guy just magically went up a level.
  */
 
+void
 raise_level()
 {
     pstats.s_exp = max_stats.s_exp;
@@ -1552,9 +1537,8 @@ raise_level()
  * thunk: A missile hits a monster
  */
 
-thunk(weap, mname)
-struct object   *weap;
-char    *mname;
+void
+thunk(struct object *weap, char *mname)
 {
     if (fighting)
 	return;
@@ -1568,9 +1552,8 @@ char    *mname;
 /*
  * m_thunk: A missile from a monster hits the player
  */
-m_thunk(weap, mname)
-struct object   *weap;
-char    *mname;
+void
+m_thunk(struct object *weap, char *mname)
 {
     if (fighting)
 	return;
@@ -1585,9 +1568,8 @@ char    *mname;
  * bounce: A missile misses a monster
  */
 
-bounce(weap, mname)
-struct object   *weap;
-char    *mname;
+void
+bounce(struct object *weap, char *mname)
 {
     if (fighting)
 	return;
@@ -1602,9 +1584,8 @@ char    *mname;
  * m_bounce: A missile from a monster misses the player
  */
 
-m_bounce(weap, mname)
-struct object   *weap;
-char    *mname;
+void
+m_bounce(struct object *weap, char *mname)
 {
     if (fighting)
 	return;
@@ -1618,9 +1599,8 @@ char    *mname;
 /*
  * remove a monster from the screen
  */
-remove_monster(mp, item)
-coord   *mp;
-struct linked_list  *item;
+void
+remove_monster(coord *mp, struct linked_list *item)
 {
     struct thing    *tp = THINGPTR(item);
     char    ch = tp->t_oldch;
@@ -1638,8 +1618,8 @@ struct linked_list  *item;
  * is_magic: Returns true if an object radiates magic
  */
 
-is_magic(obj)
-struct object   *obj;
+bool
+is_magic(struct object *obj)
 {
     switch (obj->o_type) {
 	case ARMOR:
@@ -1660,10 +1640,11 @@ struct object   *obj;
  * killed: Called to put a monster to death
  */
 
-killed(killer, item, print_message, give_points)
-struct thing    *killer;    /* Who did the dirty deed */
-struct linked_list  *item;  /* Who died */
-bool    print_message, give_points; /* Give killer exp points? */
+void
+killed(struct thing    *killer,    /* Who did the dirty deed */
+       struct linked_list  *item,  /* Who died */
+       bool    print_message,
+       bool give_points) /* Give killer exp points? */
 {
     struct linked_list  *pitem, *nitem;
     struct thing    *tp = THINGPTR(item);
@@ -1676,7 +1657,7 @@ bool    print_message, give_points; /* Give killer exp points? */
 	next_mons = next(next_mons);
 
     if (on(*tp, WASSUMMONED)) {
-	extinguish(unsummon);
+	extinguish_fuse(FUSE_UNSUMMON);
 	turn_off(player, HASSUMMONED);
     }
 
@@ -1769,9 +1750,7 @@ bool    print_message, give_points; /* Give killer exp points? */
  */
 
 struct object   *
-wield_weap(weapon, mp)
-struct object   *weapon;
-struct thing    *mp;
+wield_weap(struct object *weapon, struct thing *mp)
 {
     int look_for;
     struct linked_list  *pitem;
@@ -1804,14 +1783,12 @@ struct thing    *mp;
  * Summon - see whether to summon help Returns TRUE if help comes, FALSE
  * otherwise
  */
-summon_help(mons, force)
-struct thing    *mons;
-bool    force;
+bool
+summon_help(struct thing *mons, bool force)
 {
     char    *helpname;
     int which, i;
     char    *mname = monsters[mons->t_index].m_name;
-    char    *strcmp();
 
     /* Try to summon if less than 1/3 max hit points */
     if (on(*mons, CANSUMMON) &&
@@ -1822,7 +1799,7 @@ bool    force;
 	msg("The %s summons its attendants!", mname);
 	helpname = monsters[mons->t_index].m_typesum;
 	for (which = 1; which < nummonst; which++) {
-	    if (strcmp(helpname, monsters[which].m_name) == NULL)
+	    if (strcmp(helpname, monsters[which].m_name) == 0)
 		break;
 	}
 	if (which >= nummonst) {
@@ -1856,8 +1833,8 @@ bool    force;
 /*
  * maxdamage() -    return the max damage a weapon can do
  */
-maxdamage(cp)
-char    *cp;
+int
+maxdamage(char *cp)
 {
     int ndice, nsides, nplus;
 

@@ -20,18 +20,21 @@
     All rights reserved.
     
     See the file LICENSE.TXT for full copyright and licensing information.*/
-*/
 
 #include <ctype.h>
 #include <signal.h>
+#include <stdlib.h>
+#include <string.h>
 #include "rogue.h"
 #include "score.h"
-#include "death.h"
 
 /*
  * command: Process the user commands
  */
 
+static bool summoned;
+
+void
 command()
 {
     static char fight_ch;
@@ -39,9 +42,10 @@ command()
     int ntimes = 1; /* Number of player moves */
     static char countch, newcount;
     static bool an_after;
-    static bool summoned;
     static coord    dta;
+    coord    nullcoord;
 
+    nullcoord.x = nullcoord.y = 0;
     an_after = FALSE;
     newcount = FALSE;
     if (on(player, CANFLY) && rnd(2))
@@ -84,7 +88,6 @@ command()
 	if (!running)
 	    door_stop = FALSE;
 	status(FALSE);
-	lastscore = purse;
 	wmove(cw, hero.y, hero.x);
 	if (!((running || count) && jump))
 	    wrefresh(cw);   /* Draw screen */
@@ -259,7 +262,7 @@ command()
 		    do_fight(dta.y, dta.x, (ch == 'F') ? TRUE : FALSE);
 		when 't':
 		    if (get_dir())
-			missile(delta.y, delta.x, get_item("throw", NULL), &player);
+			missile(delta.y, delta.x, get_item("throw", 0), &player);
 		    else
 			after = FALSE;
 
@@ -331,7 +334,7 @@ command()
 		when 'r': read_scroll(&player, -1, ISNORMAL);
 		when 'd': drop((struct linked_list *) NULL);
 		when '^': set_trap(&player, hero.y, hero.x);
-		when 'c': incant(&player, NULL);
+		when 'c': incant(&player, nullcoord);
 		when 'D': dip_it();
 		when 'e': eat();
 		when '=': listen();
@@ -384,7 +387,6 @@ command()
 			    msg("Illegal command '^W'.");
 		    }
 		    else {
-			object  *get_object();
 			object  *obj;
 
 			msg("Wizard command: ");
@@ -411,7 +413,7 @@ command()
 				if ((obj = get_object(pack, "charge", STICK, NULL)) != NULL)
 				    obj->o_charges = 10000;
 			    when 'w':
-				if ((obj = get_object(pack, "price", NULL, NULL)) != NULL)
+				if ((obj = get_object(pack, "price", 0, NULL)) != NULL)
 				    msg("Worth %d.", get_worth(obj));
 			    when 'g': {
 				int tlev;
@@ -551,8 +553,6 @@ command()
 			    count = 0;
 		    }
 		}
-		when    ESCAPE: /* Escape */
-		    after = doescape();
 		otherwise:
 		    msg("Illegal command '%s'.",
 			unctrl(ch));
@@ -586,167 +586,182 @@ command()
 	    an_after = TRUE;
     }
 
-    /*
-     * Kick off the rest of the daemons and fuses
-     */
-    if (an_after) {
-	int i;
+    if (an_after)
+        do_after_effects();
+}
 
-	look(FALSE);
-	do_daemons(AFTER);
-	do_fuses(AFTER);
+void
+do_after_effects()
+{
+    int i;
 
-	/* Special abilities */
-	if ((player.t_ctype == C_THIEF || player.t_ctype == C_ASSASIN ||
-	 player.t_ctype == C_NINJA || player.t_ctype == C_RANGER) &&
-	    (rnd(100) < (2 * pstats.s_dext + 5 * pstats.s_lvl)))
-	    search(TRUE);
-	for (i = 0; i <= ring_value(R_SEARCH); i++)
-	    search(FALSE);
-	if (is_wearing(R_TELEPORT) && rnd(100) < 2) {
-	    teleport();
-	    if (off(player, ISCLEAR)) {
-		if (on(player, ISHUH))
-		    lengthen(unconfuse, rnd(8) +
-			HUHDURATION);
-		else
-		    fuse(unconfuse, 0, rnd(8) +
-			HUHDURATION, AFTER);
-		turn_on(player, ISHUH);
-	    }
-	    else
-		msg("You feel dizzy for a moment, but it quickly passes.");
-	}
+       /*
+        * Kick off the rest of the daemons and fuses
+        */
 
-	/* accidents and general clumsiness */
-	if (fighting && rnd(50) == 0) {
-	    msg("You become tired of this nonsense.");
-	    fighting = after = FALSE;
-	}
-	if (on(player, ISELECTRIC))
-	    electrificate();
+    look(FALSE);
+    do_daemons(AFTER);
+    do_fuses(AFTER);
 
-	if (!fighting && (no_command == 0) && cur_weapon != NULL
-	    && rnd(on(player, STUMBLER) ? 399 : 9999) == 0
-	    && rnd(pstats.s_dext) <
-	    2 - hitweight() + (on(player, STUMBLER) ? 4 : 0)) {
-	    msg("You trip and stumble over your weapon.");
-	    running = after = FALSE;
-	    if (rnd(8) == 0 && (pstats.s_hpt -= roll(1, 10)) <= 0) {
-		msg("You break your neck and die.");
-		death(D_FALL);
-		return;
-	    }
-	    else if (cur_weapon->o_flags & ISPOISON && rnd(4) == 0) {
-		msg("You are cut by your %s!",
-		    inv_name(cur_weapon, LOWERCASE));
-		if (player.t_ctype != C_PALADIN
-		    && !(player.t_ctype == C_NINJA &&
-		    pstats.s_lvl > 12)
-		    && !save(VS_POISON)) {
-		    if (pstats.s_hpt == 1) {
-			msg("You die from the poison in the cut.");
-			death(D_POISON);
-			return;
-		    }
-		    else {
-			msg("You feel very sick now.");
-			pstats.s_hpt /= 2;
-			chg_str(-2, FALSE, FALSE);
-		    }
-		}
-	    }
-	}
-
-	/* Time to enforce weapon and armor restrictions */
-	if (rnd(9999) == 0)
-	    if (((cur_weapon == NULL) ||
-		(wield_ok(&player, cur_weapon, NOMESSAGE)))
-		&& ((cur_armor == NULL) ||
-		(wear_ok(&player, cur_armor, NOMESSAGE)))) {
-		switch (player.t_ctype) {
-		    when    C_CLERIC:
-		    case C_DRUID:
-		    case C_RANGER:
-		    case C_PALADIN:
-			if (rnd(luck) != 0)
-			    /* You better have done
-			     * little wrong */
-			    goto bad_cleric;
-
-			msg("You are enraptured by the renewed power of your god.");
-		    when    C_MAGICIAN:
-		    case C_ILLUSION:
-			msg("You become in tune with the universe.");
-		    when    C_THIEF:
-		    case C_NINJA:
-		    case C_ASSASIN:
-			msg("You become supernaly sensitive to your surroundings.");
-		    when    C_FIGHTER:
-			msg("You catch your second wind.");
-
-		    otherwise:
-			msg("What a strange type you are!");
-		}
-		pstats.s_hpt = max_stats.s_hpt += rnd(pstats.s_lvl) + 1;
-		pstats.s_power = max_stats.s_power += rnd(pstats.s_lvl) + 1;
-	    }
-	    else {  /* he blew it - make him pay */
-		int death_cause;
-
-		switch (player.t_ctype) {
-		    when    C_CLERIC:
-		    case C_DRUID:
-		    case C_RANGER:
-		    case C_PALADIN:
-		bad_cleric:
-			msg("Your god scourges you for your misdeeds.");
-			death_cause = D_GODWRATH;
-		    when    C_MAGICIAN:
-		    case C_ILLUSION:
-			msg("You short out your manna on the unfamiliar %s.",
-			    (cur_armor != NULL ? "armor" : "weapon"));
-
-			death_cause = D_SPELLFUMBLE;
-		    when    C_THIEF:
-		    case C_NINJA:
-		    case C_ASSASIN:
-			msg("You trip and fall because of the unfamiliar %s.",
-			    (cur_armor != NULL ? "armor" : "weapon"));
-			death_cause = D_CLUMSY;
-		    when    C_FIGHTER:
-			debug("Fighter getting raw deal?");
-		    otherwise:
-			msg("What a strange type you are!");
-		}
-		aggravate();
-		pstats.s_power /= 2;
-		pstats.s_hpt /= 2;
-		player.t_no_move++;
-		if ((pstats.s_hpt -= rnd(pstats.s_lvl)) <= 0) {
-		    death(death_cause);
-		}
-	    }
-
-	if (rnd(9999) == 0) {
-	    new_level(THRONE);
-	    fighting = running = after = FALSE;
-	    summoned = TRUE;
-	}
+    /* Special abilities */
+    if ((player.t_ctype == C_THIEF || player.t_ctype == C_ASSASIN ||
+     player.t_ctype == C_NINJA || player.t_ctype == C_RANGER) &&
+         (rnd(100) < (2 * pstats.s_dext + 5 * pstats.s_lvl)))
+         search(TRUE);
+    for (i = 0; i <= ring_value(R_SEARCH); i++)
+        search(FALSE);
+    if (is_wearing(R_TELEPORT) && rnd(100) < 2) {
+        teleport();
+        if (off(player, ISCLEAR)) {
+    	if (on(player, ISHUH))
+    	    lengthen_fuse(FUSE_UNCONFUSE, rnd(8) +
+    		HUHDURATION);
+    	else
+    	    light_fuse(FUSE_UNCONFUSE, 0, rnd(8) +
+    		HUHDURATION, AFTER);
+    	turn_on(player, ISHUH);
+        }
+        else
+    	msg("You feel dizzy for a moment, but it quickly passes.");
     }
+
+    /* accidents and general clumsiness */
+    if (fighting && rnd(50) == 0) {
+        msg("You become tired of this nonsense.");
+        fighting = after = FALSE;
+    }
+    if (on(player, ISELECTRIC))
+        electrificate();
+
+    if (!fighting && (no_command == 0) && cur_weapon != NULL
+        && rnd(on(player, STUMBLER) ? 399 : 9999) == 0
+        && rnd(pstats.s_dext) <
+        2 - hitweight() + (on(player, STUMBLER) ? 4 : 0)) {
+        msg("You trip and stumble over your weapon.");
+        running = after = FALSE;
+        if (rnd(8) == 0 && (pstats.s_hpt -= roll(1, 10)) <= 0) {
+    	msg("You break your neck and die.");
+    	death(D_FALL);
+    	return;
+        }
+        else if (cur_weapon->o_flags & ISPOISON && rnd(4) == 0) {
+    	msg("You are cut by your %s!",
+    	    inv_name(cur_weapon, LOWERCASE));
+    	if (player.t_ctype != C_PALADIN
+    	    && !(player.t_ctype == C_NINJA &&
+    	    pstats.s_lvl > 12)
+    	    && !save(VS_POISON)) {
+    	    if (pstats.s_hpt == 1) {
+    		msg("You die from the poison in the cut.");
+    		death(D_POISON);
+    		return;
+    	    }
+    	    else {
+    		msg("You feel very sick now.");
+    		pstats.s_hpt /= 2;
+    		chg_str(-2, FALSE, FALSE);
+    	    }
+    	}
+        }
+    }
+
+    /* Time to enforce weapon and armor restrictions */
+    if (rnd(9999) == 0)
+        if (((cur_weapon == NULL) ||
+    	(wield_ok(&player, cur_weapon, NOMESSAGE)))
+    	&& ((cur_armor == NULL) ||
+    	(wear_ok(&player, cur_armor, NOMESSAGE)))) {
+    	switch (player.t_ctype) {
+    	    when    C_CLERIC:
+    	    case C_DRUID:
+    	    case C_RANGER:
+    	    case C_PALADIN:
+    		if (rnd(luck) != 0)
+    		    /* You better have done
+    		     * little wrong */
+    		    goto bad_cleric;
+
+    		msg("You are enraptured by the renewed power of your god.");
+    	    when    C_MAGICIAN:
+    	    case C_ILLUSION:
+    		msg("You become in tune with the universe.");
+    	    when    C_THIEF:
+    	    case C_NINJA:
+    	    case C_ASSASIN:
+    		msg("You become supernaly sensitive to your surroundings.");
+    	    when    C_FIGHTER:
+    		msg("You catch your second wind.");
+
+    	    otherwise:
+    		msg("What a strange type you are!");
+    	}
+    	pstats.s_hpt = max_stats.s_hpt += rnd(pstats.s_lvl) + 1;
+    	pstats.s_power = max_stats.s_power += rnd(pstats.s_lvl) + 1;
+        }
+        else {  /* he blew it - make him pay */
+    	int death_cause;
+
+    	switch (player.t_ctype) {
+    	    when    C_CLERIC:
+    	    case C_DRUID:
+    	    case C_RANGER:
+    	    case C_PALADIN:
+    	bad_cleric:
+    		msg("Your god scourges you for your misdeeds.");
+    		death_cause = D_GODWRATH;
+    	    when    C_MAGICIAN:
+    	    case C_ILLUSION:
+    		msg("You short out your manna on the unfamiliar %s.",
+    		    (cur_armor != NULL ? "armor" : "weapon"));
+
+    		death_cause = D_SPELLFUMBLE;
+    	    when    C_THIEF:
+    	    case C_NINJA:
+    	    case C_ASSASIN:
+    		msg("You trip and fall because of the unfamiliar %s.",
+    		    (cur_armor != NULL ? "armor" : "weapon"));
+    		death_cause = D_CLUMSY;
+    	    when    C_FIGHTER:
+    		debug("Fighter getting raw deal?");
+    	    otherwise:
+    		msg("What a strange type you are!");
+    	}
+    	aggravate();
+    	pstats.s_power /= 2;
+    	pstats.s_hpt /= 2;
+    	player.t_no_move++;
+    	if ((pstats.s_hpt -= rnd(pstats.s_lvl)) <= 0) {
+    	    death(death_cause);
+    	}
+        }
+
+    if (rnd(9999) == 0) {
+        new_level(THRONE);
+        fighting = running = after = FALSE;
+        summoned = TRUE;
+    }
+}
+
+void
+quit_handler(int sig)
+{
+    /*
+     * Reset the signal in case we got here via an interrupt
+     */
+    if (signal(SIGINT, quit_handler) != quit_handler)
+	mpos = 0;
+
+    sig = 0;
+    quit();
 }
 
 /*
  * quit: Have player make certain, then exit.
  */
+void
 quit()
 {
 
-    /*
-     * Reset the signal in case we got here via an interrupt
-     */
-    if (signal(SIGINT, quit) != quit)
-	mpos = 0;
     msg("Really quit?");
     wrefresh(cw);
     if (readchar() == 'y') {
@@ -760,7 +775,7 @@ quit()
 	byebye();
     }
     else {
-	signal(SIGINT, quit);
+	signal(SIGINT, quit_handler);
 	wmove(cw, 0, 0);
 	wclrtoeol(cw);
 	status(FALSE);
@@ -774,8 +789,8 @@ quit()
 /*
  * search: Player gropes about him to find hidden things.
  */
-search(is_thief)
-bool    is_thief;
+void
+search(bool is_thief)
 {
     int x, y;
     char    ch;
@@ -822,9 +837,10 @@ bool    is_thief;
 /*
  * help: Give single character help, or the whole mess if he wants it
  */
+void
 help()
 {
-    struct h_list   *strp = helpstr;
+    const struct h_list   *strp = helpstr;
     char    helpch;
     int cnt;
 
@@ -896,10 +912,6 @@ help()
     wclear(hw);
     wrefresh(hw);
 
-    /*
-     * Print info on keypad
-     */
-    keypadhelp();
     wmove(cw, 0, 0);
     wclrtoeol(cw);
     status(FALSE);
@@ -910,6 +922,7 @@ help()
  * identify: Tell the player what a certain thing is.
  */
 
+void
 identify()
 {
     char    ch, *str;
@@ -966,6 +979,7 @@ identify()
  * d_level: He wants to go down a level
  */
 
+void
 d_level()
 {
     bool    no_phase = FALSE;
@@ -976,7 +990,7 @@ d_level()
 	    msg("I see no way down.");
 	    return;
 	}
-	extinguish(unphase);    /* Using phase to go down gets rid of
+	extinguish_fuse(FUSE_UNPHASE);    /* Using phase to go down gets rid of
 		     * it */
 	no_phase = TRUE;
     }
@@ -1003,6 +1017,7 @@ d_level()
  * u_level: He wants to go up a level
  */
 
+void
 u_level()
 {
     char    ch;
@@ -1019,8 +1034,8 @@ u_level()
 	    msg("You feel a wrenching sensation in your gut.");
 	}
 	if (on(player, CANINWALL) && ch != STAIRS) {
-	    extinguish(unphase);
-	    unphase();
+	    extinguish_fuse(FUSE_UNPHASE);
+	    unphase(NULL);
 	}
 	return;
     }
@@ -1035,8 +1050,8 @@ u_level()
 /*
  * allow a user to call a potion, scroll, or ring something
  */
-call(mark)
-bool    mark;
+void
+call(bool mark)
 {
     struct object   *obj;
     char    *elsewise;
@@ -1044,12 +1059,11 @@ bool    mark;
     char    **item_color;
 
     int bff_callable(), bff_markable();
-    object  *get_object();
 
     if (mark)
-	obj = get_object(pack, "mark", NULL, bff_markable);
+	obj = get_object(pack, "mark", 0, bff_markable);
     else
-	obj = get_object(pack, "call", NULL, bff_callable);
+	obj = get_object(pack, "call", 0, bff_callable);
     if (obj == NULL)
 	return;
 
@@ -1101,7 +1115,7 @@ bool    mark;
 	    obj->o_mark[MARKLEN - 1] = '\0';
 	}
 	else {
-	    guess_items[item_type][obj->o_which] = new((unsigned int) strlen(prbuf) + 1);
+	    guess_items[item_type][obj->o_which] = new_alloc((unsigned int) strlen(prbuf) + 1);
 	    strcpy(guess_items[item_type][obj->o_which], prbuf);
 	}
     }
@@ -1111,6 +1125,7 @@ bool    mark;
  * att_bonus: bonus attacks for certain player classes
  */
 
+bool
 att_bonus()
 {
     int bonus = FALSE;

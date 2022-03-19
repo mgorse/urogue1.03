@@ -22,11 +22,9 @@
     See the file LICENSE.TXT for full copyright and licensing information.
 */
 
+#include <malloc.h>
+#include <string.h>
 #include "rogue.h"
-#include "death.h"
-
-int shield_ac = 0;      /* AC bonus via P_SHIELD */
-char    *find_slot();       /* actually (struct delayed_action *) */
 
 /*
  * quaff - drink a potion (or effect a potion-like spell)
@@ -35,10 +33,8 @@ char    *find_slot();       /* actually (struct delayed_action *) */
  * which:   which P_POTION (-1 means ask from pack)
  * flags:   ISBLESSED, ISCURSED
  */
-quaff(quaffer, which, flags)
-struct thing    *quaffer;
-int which;
-int flags;
+void
+quaff(struct thing *quaffer, int which, int flags)
 {
     struct object   *obj;
     struct thing    *th;
@@ -82,10 +78,10 @@ int flags;
 		if (off(player, ISCLEAR)) {
 		    msg("Wait, what's going on here. Huh? What? Who?");
 		    if (on(player, ISHUH))
-			lengthen(unconfuse, rnd(8) +
+			lengthen_fuse(FUSE_UNCONFUSE, rnd(8) +
 			    HUHDURATION);
 		    else
-			fuse(unconfuse, 0, rnd(8) +
+			light_fuse(FUSE_UNCONFUSE, 0, rnd(8) +
 			    HUHDURATION, AFTER);
 		    turn_on(player, ISHUH);
 		}
@@ -95,7 +91,7 @@ int flags;
 	    else {
 		if (blessed) {  /* Make player immune for the
 			 * whole game */
-		    extinguish(unclrhead);  /* If we have
+		    extinguish_fuse(FUSE_UNCLRHEAD);  /* If we have
 				 * a fuse,
 				 * put it out */
 		    msg("A strong blue aura surrounds your head.");
@@ -103,17 +99,17 @@ int flags;
 		else {  /* Just light a fuse for how long
 		     * player is safe */
 		    if (off(player, ISCLEAR)) {
-			fuse(unclrhead, 0,
+			light_fuse(FUSE_UNCLRHEAD, 0,
 			    CLRDURATION, AFTER);
 			msg("A faint blue aura surrounds your head.");
 		    }
 		    else {  /* If we have a fuse lengthen
 			 * it, else we are permanently
 			 * clear. */
-			if (find_slot(unclrhead) == NULL)
+			if (find_slot(FUSE_UNCLRHEAD, FUSE) == NULL)
 			    msg("Your blue aura continues to glow strongly.");
 			else {
-			    lengthen(unclrhead, CLRDURATION);
+			    lengthen_fuse(FUSE_UNCLRHEAD, CLRDURATION);
 			    msg("Your blue aura brightens for a moment.");
 			}
 		    }
@@ -121,8 +117,8 @@ int flags;
 		turn_on(player, ISCLEAR);
 		/* If player is confused, unconfuse him */
 		if (on(player, ISHUH)) {
-		    extinguish(unconfuse);
-		    unconfuse();
+		    extinguish_fuse(FUSE_UNCONFUSE);
+		    unconfuse(NULL);
 		}
 	    }
 	when    P_HEALING:
@@ -148,8 +144,8 @@ int flags;
 		int power_gain = roll(curp->s_lvl, nsides);
 
 		if (blessed && on(player, ISHUH)) {
-		    extinguish(unconfuse);
-		    unconfuse();
+		    extinguish_fuse(FUSE_UNCONFUSE);
+		    unconfuse(NULL);
 		}
 		curp->s_hpt = min(curp->s_hpt + hpt_gain,
 		    maxp->s_hpt);
@@ -363,7 +359,7 @@ int flags;
 		    !is_wearing(R_SEEINVIS)) {
 		    msg("A cloak of darkness falls around you.");
 		    turn_on(player, ISBLIND);
-		    fuse(sight, 0, SEEDURATION, AFTER);
+		    light_fuse(FUSE_SIGHT, 0, SEEDURATION, AFTER);
 		    look(FALSE);
 		}
 		else
@@ -376,14 +372,14 @@ int flags;
 		if (off(player, CANSEE)) {
 		    turn_on(player, CANSEE);
 		    msg("Your eyes begin to tingle.");
-		    fuse(unsee, 0, blessed ? SEEDURATION * 3 : SEEDURATION, AFTER);
+		    light_fuse(FUSE_UNSEE, 0, blessed ? SEEDURATION * 3 : SEEDURATION, AFTER);
 		    light(&hero);
 		}
-		else if (find_slot(unsee) != NULL) {
+		else if (find_slot(FUSE_UNSEE, FUSE) != NULL) {
 		    nothing_message(ISNORMAL);
-		    lengthen(unsee, blessed ? SEEDURATION * 3 : SEEDURATION);
+		    lengthen_fuse(FUSE_UNSEE, blessed ? SEEDURATION * 3 : SEEDURATION);
 		}
-		sight();
+		sight(NULL);
 	    }
 	when    P_PHASE:
 	    if (cursed) {
@@ -396,10 +392,10 @@ int flags;
 		if (is_potion)
 		    know_items[TYP_POTION][P_PHASE] = TRUE;
 		if (on(player, CANINWALL))
-		    lengthen(unphase, duration *
+		    lengthen_fuse(FUSE_UNPHASE, duration *
 			PHASEDURATION);
 		else {
-		    fuse(unphase, 0, duration *
+		    light_fuse(FUSE_UNPHASE, 0, duration *
 			PHASEDURATION, AFTER);
 		    turn_on(player, CANINWALL);
 		}
@@ -420,18 +416,18 @@ int flags;
 	when    P_HASTE:
 	    if (cursed) {   /* Slow player down */
 		if (on(player, ISHASTE)) {
-		    extinguish(nohaste);
-		    nohaste();
+		    extinguish_fuse(FUSE_NOHASTE);
+		    nohaste(NULL);
 		}
 		else {
 		    msg("You feel yourself moving %sslower.",
 			on(player, ISSLOW) ? "even " : "");
 		    if (on(player, ISSLOW))
-			lengthen(noslow, rnd(4) + 4);
+			lengthen_fuse(FUSE_NOSLOW, rnd(4) + 4);
 		    else if (!is_wearing(R_FREEDOM)) {
 			turn_on(player, ISSLOW);
 			player.t_turn = TRUE;
-			fuse(noslow, 0, rnd(4) + 4, AFTER);
+			light_fuse(FUSE_NOSLOW, 0, rnd(4) + 4, AFTER);
 		    }
 		}
 	    }
@@ -452,14 +448,14 @@ int flags;
 
 	    if (lost_str) {
 		for (i = 0; i < lost_str; i++)
-		    extinguish(res_strength);
+		    extinguish_fuse(FUSE_RES_STRENGTH);
 		lost_str = 0;
 	    }
 	    res_strength();
 
 	    if (lost_dext) {
 		for (i = 0; i < lost_dext; i++)
-		    extinguish(un_itch);
+		    extinguish_fuse(FUSE_UNITCH);
 		lost_dext = 0;
 	    }
 	    res_dexterity();
@@ -477,11 +473,11 @@ int flags;
 		turn_on(player, ISINVIS);
 		if (on(player, ISDISGUISE)) {
 		    turn_off(player, ISDISGUISE);
-		    extinguish(undisguise);
+		    extinguish_fuse(FUSE_UNDISGUISE);
 		    msg("Your skin feels itchy for a moment.");
 		}
 		msg("You have a tingling feeling all over your body.");
-		fuse(appear, 0, blessed ? WANDERTIME * 3 :
+		light_fuse(FUSE_APPEAR, 0, blessed ? WANDERTIME * 3 :
 		    WANDERTIME, AFTER);
 		PLAYER = IPLAYER;
 		light(&hero);
@@ -489,22 +485,22 @@ int flags;
 		    know_items[TYP_POTION][P_INVIS] = TRUE;
 	    }
 	    else
-		lengthen(appear, blessed ? WANDERTIME * 3 :
+		lengthen_fuse(FUSE_APPEAR, blessed ? WANDERTIME * 3 :
 		    WANDERTIME);
 	when    P_SMELL:
 	    if (cursed) {
 		if (on(player, CANSCENT)) {
 		    turn_off(player, CANSCENT);
-		    extinguish(unscent);
+		    extinguish_fuse(FUSE_UNSCENT);
 		    msg("You no longer smell monsters around you.");
 		}
 		else if (on(player, ISUNSMELL)) {
-		    lengthen(scent, PHASEDURATION);
+		    lengthen_fuse(FUSE_SCENT, PHASEDURATION);
 		    msg("You feel your nose tingle.");
 		}
 		else {
 		    turn_on(player, ISUNSMELL);
-		    fuse(scent, 0, PHASEDURATION, AFTER);
+		    light_fuse(FUSE_SCENT, 0, PHASEDURATION, AFTER);
 		    msg("You can't smell anything now.");
 		}
 	    }
@@ -514,10 +510,10 @@ int flags;
 		if (is_potion)
 		    know_items[TYP_POTION][P_SMELL] = TRUE;
 		if (on(player, CANSCENT))
-		    lengthen(unscent, duration *
+		    lengthen_fuse(FUSE_UNSCENT, duration *
 			PHASEDURATION);
 		else {
-		    fuse(unscent, 0, duration *
+		    light_fuse(FUSE_UNSCENT, 0, duration *
 			PHASEDURATION, AFTER);
 		    turn_on(player, CANSCENT);
 		}
@@ -527,15 +523,15 @@ int flags;
 	    if (cursed) {
 		if (on(player, CANHEAR)) {
 		    turn_off(player, CANHEAR);
-		    extinguish(hear);
+		    extinguish_fuse(FUSE_HEAR);
 		    msg("You no longer hear monsters around you.");
 		}
 		else if (on(player, ISDEAF)) {
-		    lengthen(hear, PHASEDURATION);
+		    lengthen_fuse(FUSE_HEAR, PHASEDURATION);
 		    msg("You feel your ears burn.");
 		}
 		else {
-		    fuse(hear, 0, PHASEDURATION, AFTER);
+		    light_fuse(FUSE_HEAR, 0, PHASEDURATION, AFTER);
 		    turn_on(player, ISDEAF);
 		    msg("You are surrounded by a sudden silence.");
 		}
@@ -546,10 +542,10 @@ int flags;
 		if (is_potion)
 		    know_items[TYP_POTION][P_HEAR] = TRUE;
 		if (on(player, CANHEAR))
-		    lengthen(unhear, duration *
+		    lengthen_fuse(FUSE_UNHEAR, duration *
 			PHASEDURATION);
 		else {
-		    fuse(unhear, 0, duration *
+		    light_fuse(FUSE_UNHEAR, 0, duration *
 			PHASEDURATION, AFTER);
 		    turn_on(player, CANHEAR);
 		}
@@ -560,12 +556,12 @@ int flags;
 		if (on(player, SUPERHERO)) {
 		    msg("You feel ordinary again.");
 		    turn_off(player, SUPERHERO);
-		    extinguish(unshero);
-		    extinguish(unbhero);
+		    extinguish_fuse(FUSE_UNSHERO);
+		    extinguish_fuse(FUSE_UNBHERO);
 		}
 		else if (on(player, ISUNHERO)) {
 		    msg("Your feeling of vulnerability increases.");
-		    lengthen(shero, 5 + rnd(5));
+		    lengthen_fuse(FUSE_SHERO, 5 + rnd(5));
 		}
 		else {
 		    msg("You feel suddenly vulnerable.");
@@ -578,7 +574,7 @@ int flags;
 		    chg_dext(-2, FALSE, TRUE);
 		    no_command = 3 + rnd(HEROTIME);
 		    turn_on(player, ISUNHERO);
-		    fuse(shero, 0, HEROTIME +
+		    light_fuse(FUSE_SHERO, 0, HEROTIME +
 			rnd(HEROTIME), AFTER);
 		}
 	    }
@@ -588,23 +584,23 @@ int flags;
 		    msg("You regain your composure.");
 		}
 		if (on(player, ISUNHERO)) {
-		    extinguish(shero);
-		    shero();
+		    extinguish_fuse(FUSE_SHERO);
+		    shero(NULL);
 		}
 		else if (on(player, SUPERHERO)) {
-		    if (find_slot(unbhero))
-			lengthen(unbhero, HEROTIME + 2
+		    if (find_slot(FUSE_UNBHERO, FUSE))
+			lengthen_fuse(FUSE_UNBHERO, HEROTIME + 2
 			    * rnd(HEROTIME));
-		    else if (find_slot(unshero) && !blessed)
-			lengthen(unshero, HEROTIME + 2
+		    else if (find_slot(FUSE_UNSHERO, FUSE) && !blessed)
+			lengthen_fuse(FUSE_UNSHERO, HEROTIME + 2
 			    * rnd(HEROTIME));
 		    else {
-			extinguish(unshero);
-			unshero();
-			fuse(unbhero, 0, 2 * (HEROTIME +
+			extinguish_fuse(FUSE_UNSHERO);
+			unshero(NULL);
+			light_fuse(FUSE_UNBHERO, 0, 2 * (HEROTIME +
 			    rnd(HEROTIME)), AFTER);
 		    }
-		    msg("Your feeling of invulnerablity grows stronger.");
+		    msg("Your feeling of invulnerability grows stronger.");
 		}
 		else {
 		    turn_on(player, SUPERHERO);
@@ -613,12 +609,12 @@ int flags;
 		    quaff(quaffer, P_HASTE, ISBLESSED);
 		    quaff(quaffer, P_CLEAR, ISNORMAL);
 		    if (blessed) {
-			fuse(unbhero, 0, HEROTIME +
+			light_fuse(FUSE_UNBHERO, 0, HEROTIME +
 			    rnd(HEROTIME), AFTER);
 			msg("You suddenly feel invincible.");
 		    }
 		    else {
-			fuse(unshero, 0, HEROTIME +
+			light_fuse(FUSE_UNSHERO, 0, HEROTIME +
 			    rnd(HEROTIME), AFTER);
 			msg("You suddenly feel invulnerable.");
 		    }
@@ -630,7 +626,7 @@ int flags;
 	    if (off(player, ISDISGUISE) && off(player, ISINVIS)) {
 		turn_on(player, ISDISGUISE);
 		msg("Your body shimmers a moment and then changes.");
-		fuse(undisguise, 0, blessed ? GONETIME * 3 :
+		light_fuse(FUSE_UNDISGUISE, 0, blessed ? GONETIME * 3 :
 		    GONETIME, AFTER);
 		if (rnd(2))
 		    PLAYER = 'a' + rnd(26);
@@ -642,7 +638,7 @@ int flags;
 			TRUE;
 	    }
 	    else if (off(player, ISINVIS))
-		lengthen(undisguise, blessed ? GONETIME * 3 :
+		lengthen_fuse(FUSE_UNDISGUISE, blessed ? GONETIME * 3 :
 		    GONETIME);
 	    else
 		msg("You have an itchy feeling under your skin.");
@@ -651,8 +647,8 @@ int flags;
 		if (!is_wearing(R_FIRERESIST)) {
 		    msg("Your teeth start clattering.");
 		    if (on(player, ISHASTE)) {
-			extinguish(nohaste);
-			nohaste();
+			extinguish_fuse(FUSE_NOHASTE);
+			nohaste(NULL);
 		    }
 		    else {
 			msg("You feel yourself moving %sslower.",
@@ -660,12 +656,12 @@ int flags;
 			    ? "even "
 			    : "");
 			if (on(player, ISSLOW))
-			    lengthen(noslow,
+			    lengthen_fuse(FUSE_NOSLOW,
 				rnd(4) + 4);
 			else if (!is_wearing(R_FREEDOM)) {
 			    turn_on(player, ISSLOW);
 			    player.t_turn = TRUE;
-			    fuse(noslow, 0, rnd(4) + 4, AFTER);
+			    light_fuse(FUSE_NOSLOW, 0, rnd(4) + 4, AFTER);
 			}
 		    }
 		}
@@ -677,38 +673,38 @@ int flags;
 		    know_items[TYP_POTION][P_FIRERESIST] =
 			TRUE;
 		if (blessed) {
-		    extinguish(unhot);
+		    extinguish_fuse(FUSE_UNHOT);
 		    msg("You feel a strong continuous warm glow.");
 		}
 		else {
 		    if (off(player, NOFIRE)) {
-			fuse(unhot, 0, PHASEDURATION,
+			light_fuse(FUSE_UNHOT, 0, PHASEDURATION,
 			    AFTER);
 			msg("You feel a warm glow.");
 		    }
 		    else {
-			if (find_slot(unhot) == NULL)
+			if (find_slot(FUSE_UNHOT, FUSE) == NULL)
 			    msg("Your warm glow continues.");
 			else {
-			    lengthen(unhot,
+			    lengthen_fuse(FUSE_UNHOT,
 				PHASEDURATION);
-			    msg("Your feel a hot flush.");
+			    msg("You feel a hot flush.");
 			}
 		    }
 		}
 		turn_on(player, NOFIRE);
 		if (on(player, NOCOLD)) {
 		    turn_off(player, NOCOLD);
-		    extinguish(uncold);
+		    extinguish_fuse(FUSE_UNCOLD);
 		}
 	    }
 	when    P_COLDRESIST:
 	    if (cursed) {
 		if (!is_wearing(R_COLDRESIST)) {
-		    msg("Your feel feverishly hot.");
+		    msg("You feel feverishly hot.");
 		    if (on(player, ISHASTE)) {
-			extinguish(nohaste);
-			nohaste();
+			extinguish_fuse(FUSE_NOHASTE);
+			nohaste(NULL);
 		    }
 		    else {
 			msg("You feel yourself moving %sslower.",
@@ -716,12 +712,12 @@ int flags;
 			    ? "even "
 			    : "");
 			if (on(player, ISSLOW))
-			    lengthen(noslow,
+			    lengthen_fuse(FUSE_NOSLOW,
 				rnd(4) + 4);
 			else if (!is_wearing(R_FREEDOM)) {
 			    turn_on(player, ISSLOW);
 			    player.t_turn = TRUE;
-			    fuse(noslow, 0, rnd(4) + 4, AFTER);
+			    light_fuse(FUSE_NOSLOW, 0, rnd(4) + 4, AFTER);
 			}
 		    }
 		}
@@ -733,20 +729,20 @@ int flags;
 		    know_items[TYP_POTION][P_COLDRESIST] =
 			TRUE;
 		if (blessed) {
-		    extinguish(uncold);
+		    extinguish_fuse(FUSE_UNCOLD);
 		    msg("You feel a strong continuous cool breeze.");
 		}
 		else {
 		    if (off(player, NOCOLD)) {
-			fuse(uncold, 0, PHASEDURATION,
+			light_fuse(FUSE_UNCOLD, 0, PHASEDURATION,
 			    AFTER);
 			msg("You feel a cool breeze.");
 		    }
 		    else {
-			if (find_slot(uncold) == NULL)
+			if (find_slot(FUSE_UNCOLD, FUSE) == NULL)
 			    msg("Your cool feeling continues.");
 			else {
-			    lengthen(uncold,
+			    lengthen_fuse(FUSE_UNCOLD,
 				PHASEDURATION);
 			    msg("The cool breeze blows more strongly.");
 			}
@@ -754,7 +750,7 @@ int flags;
 		}
 		turn_on(player, NOCOLD);
 		if (on(player, NOFIRE)) {
-		    extinguish(unhot);
+		    extinguish_fuse(FUSE_UNHOT);
 		    turn_off(player, NOFIRE);
 		}
 	    }
@@ -775,10 +771,10 @@ int flags;
 		    know_items[TYP_POTION][P_HASOXYGEN] =
 			TRUE;
 		if (on(player, HASOXYGEN))
-		    lengthen(unbreathe, duration *
+		    lengthen_fuse(FUSE_UNBREATHE, duration *
 			PHASEDURATION);
 		else {
-		    fuse(unbreathe, 0, duration *
+		    light_fuse(FUSE_UNBREATHE, 0, duration *
 			PHASEDURATION, AFTER);
 		    turn_on(player, HASOXYGEN);
 		}
@@ -798,9 +794,9 @@ int flags;
 		    know_items[TYP_POTION][P_LEVITATION] =
 			TRUE;
 		if (on(player, CANFLY))
-		    lengthen(unfly, duration * WANDERTIME);
+		    lengthen_fuse(FUSE_UNFLY, duration * WANDERTIME);
 		else {
-		    fuse(unfly, 0, duration * WANDERTIME, AFTER);
+		    light_fuse(FUSE_UNFLY, 0, duration * WANDERTIME, AFTER);
 		    turn_on(player, CANFLY);
 		}
 		if (!is_wearing(R_LEVITATION))
@@ -819,15 +815,15 @@ int flags;
 		if (is_potion)
 		    know_items[TYP_POTION][P_REGENERATE] = TRUE;
 		if (on(player, SUPEREAT))
-		    lengthen(unsupereat, duration);
+		    lengthen_fuse(FUSE_UNSUPEREAT, duration);
 		else {
-		    fuse(unsupereat, 0, duration, AFTER);
+		    light_fuse(FUSE_UNSUPEREAT, 0, duration, AFTER);
 		    turn_on(player, SUPEREAT);
 		}
 		if (on(player, ISREGEN))
-		    lengthen(unregen, duration);
+		    lengthen_fuse(FUSE_UNREGEN, duration);
 		else {
-		    fuse(unregen, 0, duration, AFTER);
+		    light_fuse(FUSE_UNREGEN, 0, duration, AFTER);
 		    turn_on(player, ISREGEN);
 		}
 		if (!is_wearing(R_REGEN))
@@ -838,8 +834,8 @@ int flags;
 	    int adjustment = 0;
 
 	    if (on(player, HASSHIELD)) {    /* cancel old spell */
-		extinguish(unshield);
-		unshield();
+		extinguish_fuse(FUSE_UNSHIELD);
+		unshield(NULL);
 	    }
 
 	    if (cursed)
@@ -862,9 +858,9 @@ int flags;
 	    }
 
 	    pstats.s_arm += adjustment;
-	    shield_ac += adjustment;
+	    pstats.s_acmod += adjustment;
 	    turn_on(player, HASSHIELD);
-	    fuse(unshield, 0, (blessed ? 3 : 1) * SEEDURATION, AFTER);
+	    light_fuse(FUSE_UNSHIELD, 0, (blessed ? 3 : 1) * SEEDURATION, AFTER);
 	    if (is_potion)
 		know_items[TYP_POTION][P_SHIELD] = TRUE;
 	}
@@ -873,12 +869,12 @@ int flags;
 		turn_on(player, PERMBLIND);
 		if (on(player, ISBLIND)) {
 		    msg("The gloom around you thickens.");
-		    lengthen(sight, SEEDURATION);
+		    lengthen_fuse(FUSE_SIGHT, SEEDURATION);
 		}
 		else {
 		    msg("A mantle of darkness falls around you.");
 		    turn_on(player, ISBLIND);
-		    fuse(sight, 0, SEEDURATION, AFTER);
+		    light_fuse(FUSE_SIGHT, 0, SEEDURATION, AFTER);
 		    look(FALSE);
 		}
 		look(FALSE);
@@ -886,7 +882,7 @@ int flags;
 	    else if (on(player, PERMBLIND)) {
 		if (blessed || is_potion) {
 		    turn_off(player, PERMBLIND);
-		    sight();
+		    sight(NULL);
 		    goto let_there_be_light;
 		}
 		else
@@ -897,13 +893,13 @@ int flags;
 	    if (off(player, CANSEE)) {
 		turn_on(player, CANSEE);
 		msg("You feel especially perceptive.");
-		fuse(untruesee, 0, blessed ? SEEDURATION * 3
+		light_fuse(FUSE_UNTRUESEE, 0, blessed ? SEEDURATION * 3
 		    : SEEDURATION, AFTER);
 		light(&hero);
 	    }
-	    else if (find_slot(unsee) != NULL) {
+	    else if (find_slot(FUSE_UNSEE, FUSE) != NULL) {
 		nothing_message(ISNORMAL);
-		lengthen(untruesee, blessed ? SEEDURATION * 3
+		lengthen_fuse(FUSE_UNTRUESEE, blessed ? SEEDURATION * 3
 		    : SEEDURATION);
 	    }
 	otherwise:
@@ -924,7 +920,7 @@ int flags;
 		"What do you want to call it? ");
 	    if (get_str(buf, cw) == NORM) {
 		guess_items[TYP_POTION][which] =
-		    new((unsigned int) strlen(buf) + 1);
+		    new_alloc((unsigned int) strlen(buf) + 1);
 		strcpy(guess_items[TYP_POTION][which], buf);
 	    }
 	}
@@ -935,8 +931,8 @@ int flags;
 
 /* Lower a level of experience */
 
-lower_level(who)
-short   who;
+void
+lower_level(int who)
 {
     int fewer, nsides, i;
 
@@ -978,6 +974,7 @@ short   who;
     }
 }
 
+void
 res_dexterity()
 {
     if (lost_dext) {
@@ -997,6 +994,7 @@ res_dexterity()
  * res_wisdom: Restore player's wisdom
  */
 
+void
 res_wisdom()
 {
     int ring_str;
@@ -1016,6 +1014,7 @@ res_wisdom()
  * res_intelligence: Restore player's intelligence
  */
 
+void
 res_intelligence()
 {
     int ring_str;
@@ -1036,8 +1035,8 @@ res_intelligence()
  * Increase player's strength
  */
 
-add_strength(cursed)
-bool    cursed;
+void
+add_strength(bool cursed)
 {
 
     if (cursed) {
@@ -1059,8 +1058,8 @@ bool    cursed;
 /*
  * Increase player's intelligence
  */
-add_intelligence(cursed)
-bool    cursed;
+void
+add_intelligence(bool cursed)
 {
     int ring_str;   /* Value of ring strengths */
 
@@ -1091,8 +1090,8 @@ bool    cursed;
  * Increase player's wisdom
  */
 
-add_wisdom(cursed)
-bool    cursed;
+void
+add_wisdom(bool cursed)
 {
     int ring_str;   /* Value of ring strengths */
 
@@ -1123,8 +1122,8 @@ bool    cursed;
  * Increase player's dexterity
  */
 
-add_dexterity(cursed)
-bool    cursed;
+void
+add_dexterity(bool cursed)
 {
     /* Now do the potion */
     if (cursed) {
@@ -1147,8 +1146,8 @@ bool    cursed;
  * Increase player's constitution
  */
 
-add_const(cursed)
-bool    cursed;
+void
+add_const(bool cursed)
 {
     /* Do the potion */
     if (cursed) {
@@ -1170,10 +1169,8 @@ bool    cursed;
 /*
  * monquaff - monster gets the effect
  */
-monquaff(quaffer, which, flags)
-struct thing    *quaffer;
-int which;
-int flags;
+void
+monquaff(struct thing *quaffer, int which, int flags)
 {
     struct stats    *curp = &(quaffer->t_stats);
     struct stats    *maxp = &(quaffer->maxstats);

@@ -23,9 +23,11 @@
 */
 
 #include <ctype.h>
+#include <stdlib.h>
 #include "rogue.h"
 
 #define ESCAPE_EXIT(x) if (x == ESCAPE) {after = FALSE; msg(""); return(NULL);}
+#define ESCAPE_EXIT_NR(x) if (x == ESCAPE) {after = FALSE; msg(""); return;}
 #define BAD_NEWS    -1
 #define BAD_LIST ((struct linked_list *) BAD_NEWS)
 #define GOOD_NEWS   0
@@ -41,11 +43,9 @@ char    type_list[] = "!?])/=:,";   /* things to inventory */
 /*
  * swap_top: Takes an stacked object and exchanges places with the top
  * object.
- */
-swap_top(top, node)
-struct linked_list  *top, *node;        /* This node must belong to
-			 * the <top>'s stacked object
-			 * list */
+ * node must belong to * the <top>'s stacked object list */
+void
+swap_top(struct linked_list *top, struct linked_list *node)
 {
     struct object   *obt, *obn;
 
@@ -63,8 +63,8 @@ struct linked_list  *top, *node;        /* This node must belong to
 /*
  * get_all: Get as many stacked items as possible.
  */
-get_all(top)
-struct linked_list  *top;
+void
+get_all(struct linked_list *top)
 {
     struct linked_list  *node;
     struct object   *obt;
@@ -85,9 +85,8 @@ struct linked_list  *top;
 /*
  * get_stack: Allows the user to chose from a stack of items.
  */
-struct linked_list
-    *get_stack(item)
-struct linked_list  *item;
+struct linked_list *
+get_stack(struct linked_list *item)
 {
     struct object   *obj;
     char    buf[2 * LINELEN];
@@ -152,9 +151,7 @@ struct linked_list  *item;
  * ground.
  */
 bool
-add_pack(item, print_message)
-struct linked_list  *item;
-bool    print_message;
+add_pack(struct linked_list *item, bool print_message)
 {
     struct object   *obj, *op;
     char    ch;
@@ -204,8 +201,11 @@ bool    print_message;
 	 */
 	for (mitem = mlist; mitem != NULL; mitem = next(mitem)) {
 	    tp = THINGPTR(mitem);
-	    if SAME_POS(tp->t_dest,obj->o_pos)
-		tp->t_dest = hero;
+            if (tp->t_horde==obj) {
+                tp->t_ischasing = TRUE;
+                tp->t_chasee = &player;
+                tp->t_horde  = NULL;
+            }
 	}
 
 	/*
@@ -300,10 +300,8 @@ bool    print_message;
  * processing.
  */
 
-pack_report(obj, print_message, message)
-object  *obj;
-bool    print_message;
-char    *message;
+void
+pack_report(object *obj, bool print_message, char *message)
 {
     extern char print_letters[];
 
@@ -326,25 +324,22 @@ char    *message;
 	}
     }
     updpack();
-    return (TRUE);
 }
 
 /*
  * inventory: list what is in the pack
  */
-inventory(container, type)
-char    *container;     /* probably a bag */
-char    type;           /* character for type, or NULL to prompt */
+void
+inventory(struct linked_list *container, /* probably a bag */
+          char    type)           /* character for type, or NULL to prompt */
 {
     int count;
-
-    void    baf_print_item();
 
     if (type == 0) {
 	msg("What kind of item <%s> to inventory (* for all)?",
 	    type_list);
 	type = readchar();
-	ESCAPE_EXIT(type);
+	ESCAPE_EXIT_NR(type);
     }
 
     /*
@@ -360,7 +355,7 @@ char    type;           /* character for type, or NULL to prompt */
     if ((count = count_bag(container, type, NULL)) == 0)
 	msg("You don't have any %s.", name_type(type));
     else
-	apply_to_bag(container, type, NULL, baf_print_item, type);
+	apply_to_bag(container, type, NULL, baf_print_item, &type);
     end_line();
     if (count > 1)
 	msg("");
@@ -369,8 +364,8 @@ char    type;           /* character for type, or NULL to prompt */
 /*
  * pick_up: Add something to characters pack.
  */
-pick_up(ch)
-char    ch;
+void
+pick_up(char ch)
 {
     switch (ch) {
 	default:
@@ -397,13 +392,11 @@ char    ch;
  * and pass it back to the calling routine.
  */
 struct object   *
-get_object(container, purpose, type, bff_p)
-char    *container;     /* what container has what we want */
-char    *purpose;       /* a message (verb) to print if we cant find
-		 * any */
-char    type;           /* type (o_type) to pick out (NULL = any) */
-int     (*bff_p) ();        /* bag filter function to test item */
-
+get_object(struct linked_list *container,     /* what container has what we want */
+           char    *purpose,       /* a message (verb) to print if we cant find
+		                    * any */
+           char    type,           /* type (o_type) to pick out (NULL = any) */
+           bff_t bff_p)        /* bag filter function to test item */
 {
     struct object   *obj_p = NULL;
     char    sel_type, sel_id;   /* selected type and id */
@@ -431,7 +424,7 @@ int     (*bff_p) ();        /* bag filter function to test item */
 	if (response == '*') {
 	    mpos = 0;
 	    apply_to_bag(container, type, bff_p, baf_print_item,
-		type);
+		(void *)(long)type);
 	    end_line();
 	    msg("What do you want to %s (* for list)?", purpose);
 	    response = readchar();  /* want real response */
@@ -465,10 +458,9 @@ int     (*bff_p) ();        /* bag filter function to test item */
  */
 
 struct linked_list  *
-get_item(purpose, type)
-char    *purpose;       /* a message (verb) to print if we cant find
-		 * any */
-char    type;           /* type (o_type) to pick out (NULL = any) */
+get_item(char    *purpose,       /* a message (verb) to print if we cant find
+		                  * any */
+         char    type)           /* type (o_type) to pick out (NULL = any) */
 {
     struct object   *obj_p;
 
@@ -483,8 +475,8 @@ char    type;           /* type (o_type) to pick out (NULL = any) */
 /*
  * del_pack: Take something out of the hero's pack and throw it away.
  */
-del_pack(what)
-struct linked_list  *what;
+void
+del_pack(struct linked_list *what)
 {
     rem_pack(OBJPTR(what));
     discard(what);
@@ -497,8 +489,8 @@ struct linked_list  *what;
  * the linked_list structure)
  */
 
-discard_pack(obj_p)
-struct object   *obj_p;
+void
+discard_pack(struct object *obj_p)
 {
     rem_pack(obj_p);
     throw_away(obj_p);
@@ -510,20 +502,19 @@ struct object   *obj_p;
  * Removes an item from the pack.
  */
 
-rem_pack(obj_p)
-struct object   *obj_p;
+void
+rem_pack(struct object *obj_p)
 {
     cur_null(obj_p);    /* check for current stuff */
     pop_bag(&pack, obj_p);
     updpack();
-    return (TRUE);      /* tell caller an item has been removed */
 }
 
 /*
  * cur_null: This updates cur_weapon etc for dropping things
  */
-cur_null(op)
-struct object   *op;
+void
+cur_null(struct object *op)
 {
     if (op == cur_weapon)
 	cur_weapon = NULL;
@@ -554,16 +545,16 @@ struct object   *op;
 /*
  * idenpack: Identify all the items in the pack
  */
+void
 idenpack()
 {
-    void    baf_identify();
-
     apply_to_bag(pack, 0, NULL, baf_identify, NULL);
 }
 
 /*
  * Print out the item on the floor.  Used by the move command.
  */
+void
 show_floor()
 {
     struct linked_list  *item;

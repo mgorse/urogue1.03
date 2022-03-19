@@ -34,8 +34,6 @@ wear()
 {
     struct object   *obj;
 
-    struct object   *get_object();
-
     if (cur_armor != NULL) {
 	addmsg("You are already wearing some");
 	if (!terse)
@@ -62,6 +60,7 @@ wear()
  * take_off: Get the armor off of the players back
  */
 
+void
 take_off()
 {
     struct object   *obj;
@@ -84,29 +83,13 @@ take_off()
     }
 }
 
-/*
- * waste_time: Do nothing but let other things happen
- */
-
-waste_time()
-{
-    if (inwhgt)     /* if from wghtchk then done */
-	return;
-    do_daemons(BEFORE);
-    do_fuses(BEFORE);
-    do_daemons(AFTER);
-    do_fuses(AFTER);
-}
 
 /*
  * wear_ok: enforce player class armor restrictions
  */
 
 int
-wear_ok(wearee, obj, print_message)
-struct thing    *wearee;
-struct object   *obj;
-bool    print_message;
+wear_ok(struct thing *wearee, struct object *obj, bool print_message)
 {
     int which = obj->o_which;
     bool    ret_val = TRUE;

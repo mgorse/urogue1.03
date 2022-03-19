@@ -23,17 +23,17 @@
 */
 
 #include <ctype.h>
+#include <string.h>
 #include "rogue.h"
 
 /*
  * inv_name: return the name of something as it would appear in an inventory.
  */
 char    *
-inv_name(obj, lowercase)
-struct object   *obj;
-bool    lowercase;
+inv_name(struct object *obj, bool lowercase)
 {
     char    *pb;
+    char buf[1024];
 
     switch (obj->o_type) {
 	when    SCROLL:
@@ -103,7 +103,7 @@ bool    lowercase;
 		sprintf(prbuf, "A%s ", vowelstr(weaps[obj->o_which].w_name));
 	    pb = &prbuf[strlen(prbuf)];
 	    if ((obj->o_flags & ISKNOW) && (obj->o_flags & ISZAPPED))
-		sprintf(pb, "charged%s ", charge_str(obj));
+		sprintf(pb, "charged%s ", charge_str(obj, buf));
 	    pb = &prbuf[strlen(prbuf)];
 	    if (obj->o_flags & CANRETURN)
 		sprintf(pb, "claimed ");
@@ -117,7 +117,7 @@ bool    lowercase;
 		sprintf(pb, "two-handed ");
 	    pb = &prbuf[strlen(prbuf)];
 	    if (obj->o_flags & ISKNOW)
-		sprintf(pb, "%s %s", num(obj->o_hplus, obj->o_dplus),
+		sprintf(pb, "%s %s", num(obj->o_hplus, obj->o_dplus, buf),
 		weaps[obj->o_which].w_name);
 	    else
 		sprintf(pb, "%s", weaps[obj->o_which].w_name);
@@ -127,7 +127,7 @@ bool    lowercase;
 	    if (obj->o_flags & ISKNOW)
 		sprintf(prbuf, "%s%s %s",
 		    obj->o_flags & CANRETURN ? "claimed " : "",
-		   num(armors[obj->o_which].a_class - obj->o_ac, 0),
+		   num(armors[obj->o_which].a_class - obj->o_ac, 0, buf),
 		    armors[obj->o_which].a_name);
 	    else
 		sprintf(prbuf, "%s%s",
@@ -144,7 +144,7 @@ bool    lowercase;
 	    pb = &prbuf[strlen(prbuf)];
 	    if (know_items[TYP_STICK][obj->o_which])
 		sprintf(pb, "of %s%s(%s)", ws_magic[obj->o_which].mi_name,
-		    charge_str(obj), ws_made[obj->o_which]);
+		    charge_str(obj, buf), ws_made[obj->o_which]);
 	    else if (guess_items[TYP_STICK][obj->o_which])
 		sprintf(pb, "called %s(%s)", guess_items[TYP_STICK][obj->o_which],
 		    ws_made[obj->o_which]);
@@ -156,7 +156,8 @@ bool    lowercase;
 	when    RING:
 	    if (know_items[TYP_RING][obj->o_which])
 		sprintf(prbuf, "A%s%s ring of %s(%s)",
-		    obj->o_flags & CANRETURN ? " claimed" : "", ring_num(obj),
+		    obj->o_flags & CANRETURN ? " claimed" : "",
+		    ring_num(obj, buf),
 		    r_magic[obj->o_which].mi_name, r_stones[obj->o_which]);
 	    else if (guess_items[TYP_RING][obj->o_which])
 		sprintf(prbuf, "A %sring called %s(%s)",
@@ -219,9 +220,8 @@ bool    lowercase;
  * rem_obj: Remove an object from the level.
  *
  */
-rem_obj(item, dis)
-struct linked_list  *item;
-int dis;
+void
+rem_obj(struct linked_list *item, int dis)
 {
     struct linked_list  *llptr;
     struct object   *objptr, *op;
@@ -260,9 +260,8 @@ int dis;
  * add_obj: adds an object to the level
  *
  */
-add_obj(item, y, x)
-struct linked_list  *item;
-int y, x;
+void
+add_obj(struct linked_list *item, int y, int x)
 {
     struct linked_list  *llptr;
     struct object   *objptr;
@@ -283,8 +282,8 @@ int y, x;
 /*
  * drop: put something down
  */
-drop(item)
-struct linked_list  *item;
+bool
+drop(struct linked_list *item)
 {
     char    ch = mvwinch(stdscr, hero.y, hero.x);
     struct object   *obj;
@@ -358,11 +357,9 @@ struct linked_list  *item;
 /*
  * do special checks for dropping or unweilding|unwearing|unringing
  */
-dropcheck(op)
-struct object   *op;
+bool
+dropcheck(struct object *op)
 {
-    char    *find_slot();       /* really (struct delayed_action *) */
-
     if (op == NULL)
 	return TRUE;
     if (op != cur_armor && op != cur_weapon &&
@@ -419,7 +416,7 @@ struct object   *op;
 	    when    R_ADDWISDOM:
 		pstats.s_wisdom -= op->o_ac;
 	    when    R_SEEINVIS:
-		if (find_slot(unsee) == NULL) {
+		if (find_slot(FUSE_UNSEE, FUSE) == NULL) {
 		    turn_off(player, CANSEE);
 		    msg("The tingling feeling leaves your eyes.");
 		}
@@ -584,8 +581,7 @@ new_thing()
  * provide a new item tailored to specification
  */
 struct linked_list  *
-spec_item(type, which, hit, damage)
-int type, which, hit, damage;
+spec_item(char type, int which, int hit, int damage)
 {
     struct linked_list  *item;
     struct object   *obj;
@@ -635,9 +631,8 @@ int type, which, hit, damage;
 /*
  * pick an item out of a list of nitems possible magic items
  */
-pick_one(magic, nitems)
-struct magic_item   *magic;
-int nitems;
+int
+pick_one(struct magic_item *magic, int nitems)
 {
     int i;
     struct magic_item   *end;
@@ -664,8 +659,7 @@ int nitems;
  */
 
 char    *
-blesscurse(flags)
-long    flags;
+blesscurse(long flags)
 {
     if (flags & ISKNOW) {
 	if (flags & ISCURSED)
@@ -700,8 +694,7 @@ extras()
  */
 
 char    *
-name_type(type)
-char    type;
+name_type(int type)
 {
     switch (type) {
 	when    ARMOR:
@@ -732,13 +725,12 @@ char    type;
  * other routines
  */
 linked_list *
-make_item(obj_p)
-object  *obj_p;
+make_item(struct object *obj_p)
 {
     linked_list *item_p = (linked_list *) ur_alloc(sizeof(linked_list));
 
     next(item_p) = prev(item_p) = NULL;
-    item_p->l_data = (char *) obj_p;
+    item_p->data.obj = obj_p;
     return (item_p);
 }
 
@@ -747,9 +739,8 @@ object  *obj_p;
  *
  * Checks to see if a character is a member of an array
  */
-is_member(list_p, member)
-char    *list_p;
-char    member;
+bool
+is_member(char *list_p, char member)
 {
     while (*list_p != 0) {
 	if (*list_p++ == member)

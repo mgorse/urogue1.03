@@ -1,250 +1,246 @@
 /*
-    io.c  -  Various input/output functions
-   
-    Last Modified: Jan 5, 1991
-
-    UltraRogue
-    Copyright (C) 1984, 1985, 1986, 1987, 1990, 1991 Herb Chong
+    io.c - Various input/output functions
+  
+    UltraRogue: The Ultimate Adventure in the Dungeons of Doom
+    Copyright (C) 1985, 1986, 1992, 1993, 1995 Herb Chong
     All rights reserved.
-    
+
     Based on "Advanced Rogue"
-    Copyright (C) 1983, 1984 Michael Morgan, Ken Dalka and AT&T
-    All rights reserved.
-
-    Based on "Super-Rogue"
-    Copyright (C) 1982, 1983 Robert D. Kindelberger
+    Copyright (C) 1984, 1985 Michael Morgan, Ken Dalka
     All rights reserved.
 
     Based on "Rogue: Exploring the Dungeons of Doom"
     Copyright (C) 1980, 1981 Michael Toy, Ken Arnold and Glenn Wichman
     All rights reserved.
-    
+
     See the file LICENSE.TXT for full copyright and licensing information.
 */
 
+#include <string.h>
 #include <ctype.h>
-#include <varargs.h>
+#include <stdarg.h>
 #include "rogue.h"
-#include "stepok.h"
 
-static char mbuf[2 * LINELEN];
-static int  newpos = 0;
+char prbuf[2 * LINELEN];    /* Buffer for sprintfs                      */
+static char mbuf[2*LINELEN];  /* Current message buffer        */
+static int newpos = 0;       /* index in mbuf to end of msg   */
+
+int mpos = 0;                 /* 0  = Overwrite existing message */
+                              /* >0 = print --More-- at this pos */
+                              /*      and wait for key           */
+
+int line_cnt = 0;
+int newpage  = FALSE;
 
 /*
- * msg: Display a message at the top of the screen.
- */
+    msg()
+        Display a message at the top of the screen.
+*/
 
-msg(fmt, args)
-char    *fmt;
-int args;
+void
+msg(const char *fmt, ...)
 {
+    va_list ap;
 
-    /*
-     * if the string is "", just clear the line
-     */
-    if (*fmt == '\0') {
-	wmove(cw, 0, 0);
-	wclrtoeol(cw);
-	mpos = 0;
-	return;
+    /* if the string is "", just clear the line */
+
+    if (*fmt == '\0')
+    {
+        wmove(cw, 0, 0);
+        wclrtoeol(cw);
+        mpos = 0;
+        return;
     }
 
-    /*
-     * otherwise add to the message and flush it out
-     */
-    doadd(fmt, &args);
+    /* otherwise add to the message and flush it out */
+
+    va_start(ap, fmt);
+    doadd(fmt, ap);
+    va_end(ap);
+
     endmsg();
 }
 
-/*
- * add things to the current message
- */
-addmsg(fmt, args)
-char    *fmt;
-int args;
+void
+vmsg(const char *fmt, va_list ap)
 {
-    doadd(fmt,&args);
+    /* if the string is "", just clear the line */
+
+    if (*fmt == '\0')
+    {
+        wmove(cw, 0, 0);
+        wclrtoeol(cw);
+        mpos = 0;
+        return;
+    }
+
+    /* otherwise add to the message and flush it out */
+
+    doadd(fmt, ap);
+    endmsg();
+}
+
+
+/*
+    addmsg()
+        add things to the current message
+*/
+
+void
+addmsg(const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    doadd(fmt,ap);
+    va_end(ap);
 }
 
 /*
- * Display a new msg (giving him a chance to see the previous one if it is up
- * there with the --More--)
- */
-endmsg()
+    endmsg()
+        Display a new msg (giving him a chance to see the previous one
+        if it is up there with the --More--)
+*/
+
+void
+endmsg(void)
 {
     strcpy(msgbuf[msg_index], mbuf);
+
     msg_index = ++msg_index % 10;
-    if (mpos) {
-	wmove(cw, 0, mpos);
-	waddstr(cw, morestr);
-	wrefresh(cw);
-	wait_for(' ');
+
+    if (mpos)
+    {
+        wmove(cw, 0, mpos);
+        wprintw(cw, (char *) morestr);
+        wrefresh(cw);
+        wait_for(' ');
     }
-    mvwaddstr(cw, 0, 0, mbuf);
+
+    mvwprintw(cw, 0, 0, mbuf);
     wclrtoeol(cw);
+
     mpos = newpos;
     newpos = 0;
-	/* draw(cw); CHECK */
 
-    wrefresh(cw); /* CHECK */
+    wrefresh(cw);
 }
 
-doadd(fmt, args)
-char    *fmt;
-int **args;
+void
+doadd(const char *fmt, va_list ap)
 {
-    vsprintf(&mbuf[newpos], fmt, args);
-    newpos = strlen(mbuf);
-}
-
-/*
- * step_ok: returns true if it is ok for type to step on ch flgptr will be
- * NULL if we don't know what the monster is yet!
- */
-
-step_ok(y, x, can_on_monst, flgptr)
-int y, x, can_on_monst;
-struct thing    *flgptr;
-{
-    struct linked_list  *item;
-    char    ch;
-
-    /* What is here?  Don't check monster window if MONSTOK is set */
-    if (can_on_monst == MONSTOK)
-	ch = mvinch(y, x);
-    else
-	ch = winat(y, x);
-
-    switch (ch) {
-	when ' ':
-	case '|':
-	case '-':
-	case SECRETDOOR:
-	    if (flgptr && on(*flgptr, CANINWALL))
-		return (TRUE);
-	    return FALSE;
-	when    SCROLL:
-
-	    /*
-	     * If it is a scroll, it might be a scare monster scroll so
-	     * we need to look it up to see what type it is.
-	     */
-	    if (flgptr && flgptr->t_ctype == C_MONSTER) {
-		item = find_obj(y, x, TRUE);
-		if (item != NULL && (OBJPTR(item))->o_type ==
-		    SCROLL && (OBJPTR(item))->o_which ==
-		    S_SCARE &&
-		    rnd(flgptr->t_stats.s_intel) < 12)
-		return (FALSE); /* All but smart ones are
-			 * scared */
-	    }
-	    return (TRUE);
-	otherwise:
-	    return (!isalpha(ch));
-    }
+    vsprintf(&mbuf[newpos], fmt, ap);
+    newpos = (int) strlen(mbuf);
 }
 
 /*
- * shoot_ok: returns true if it is ok for type to shoot over ch
- */
+    status()
+        Display the important stats line.  Keep the cursor where it was.
+*/
 
-shoot_ok(ch)
+void
+status(int display)
 {
-    switch (ch) {
-	case ' ':
-	case '|':
-	case '-':
-	case SECRETDOOR:
-	    return FALSE;
-	default:
-	    return (!isalpha(ch));
-    }
-}
-
-/*
- * readchar - get an ASCII character
- */
-
-readchar()
-{
-    return (ttgetc() & 0x7f);
-}
-
-/*
- * status: Display the important stats line.  Keep the cursor where it was.
- */
-status(display)
-bool    display;            /* TRUE - force refresh */
-{
-    struct stats    *stat_ptr, *max_ptr;
+    static char buf[1024];             /* Temporary buffer */
+    struct stats *stat_ptr, *max_ptr;
     int oy, ox;
-    static char buf[2 * LINELEN];
 
     stat_ptr = &pstats;
     max_ptr = &max_stats;
 
     getyx(cw, oy, ox);
-    sprintf(buf, "Int:%d(%d) Str:%d(%d) Wis:%d(%d) Dex:%d(%d) Con:%d(%d) Carry:%d(%d)",
-	stat_ptr->s_intel, max_ptr->s_intel,
-	stat_ptr->s_str, max_ptr->s_str,
-	stat_ptr->s_wisdom, max_ptr->s_wisdom,
-	stat_ptr->s_dext, max_ptr->s_dext,
-	stat_ptr->s_const, max_ptr->s_const,
-	stat_ptr->s_pack / 10, stat_ptr->s_carry / 10
-	);
+    sprintf(buf,
+    "Int:%d(%d) Str:%d(%d) Wis:%d(%d) Dex:%d(%d) Con:%d(%d) Carry:%d(%d) %d",
+        stat_ptr->s_intel, max_ptr->s_intel,
+        stat_ptr->s_str, max_ptr->s_str,
+        stat_ptr->s_wisdom, max_ptr->s_wisdom,
+        stat_ptr->s_dext, max_ptr->s_dext,
+        stat_ptr->s_const, max_ptr->s_const,
+        stat_ptr->s_pack / 10, stat_ptr->s_carry / 10, foodlev );
+
     mvwaddstr(cw, LINES - 2, 0, buf);
     wclrtoeol(cw);
 
-    sprintf(buf, "Lvl:%d Au:%d Hpt:%d(%d) Pow:%d(%d) Ac:%d Exp:%d+%ld %s",
-	level,
-	purse,
-	stat_ptr->s_hpt, max_ptr->s_hpt,
-	stat_ptr->s_power, max_ptr->s_power,
-	(cur_armor != NULL ? (cur_armor->o_ac - 10 + stat_ptr->s_arm)
-	 : stat_ptr->s_arm) - ring_value(R_PROTECT),
-	stat_ptr->s_lvl,
-	stat_ptr->s_exp,
-	cnames[player.t_ctype][min(stat_ptr->s_lvl - 1, 14)]);
+    sprintf(buf, "Lvl:%d Au:%d Hpt:%3d(%3d) Pow:%d(%d) Ac:%d  Exp:%d+%ld  %s",
+        level,
+        purse,
+        stat_ptr->s_hpt, max_ptr->s_hpt,
+        stat_ptr->s_power, max_ptr->s_power,
+        (cur_armor != NULL ? (cur_armor->o_ac - 10 + stat_ptr->s_arm)
+         : stat_ptr->s_arm) - ring_value(R_PROTECT),
+        stat_ptr->s_lvl,
+        stat_ptr->s_exp,
+        cnames[player.t_ctype][min(stat_ptr->s_lvl - 1, 14)]);
+
     mvwaddstr(cw, LINES - 1, 0, buf);
-    switch (hungry_state) {
-	when    F_OK:;
-	when    F_HUNGRY:
-	    waddstr(cw, " Hungry");
-	when    F_WEAK:
-	    waddstr(cw, " Weak");
-	when    F_FAINT:
-	    waddstr(cw, " Fainting");
+
+    switch(hungry_state)
+    {
+        case F_OK:     break;
+        case F_HUNGRY: waddstr(cw, " Hungry");
+                       break;
+        case F_WEAK:   waddstr(cw, " Weak");
+                       break;
+        case F_FAINT:  waddstr(cw, " Fainting");
+                       break;
     }
+
     wclrtoeol(cw);
     wmove(cw, oy, ox);
+
     if (display)
-	wrefresh(cw);
+        wrefresh(cw);
 }
 
 /*
- * wait_for Sit around until the guy types the right key
+ * readchar:
+ *	Flushes stdout so that screen is up to date and then returns
+ *	getchar().
  */
 
-wait_for(ch)
-char    ch;
+char
+readcharw(WINDOW *win)
+{
+    return(wgetch(win));
+}
+
+char
+readchar()
+{
+    return wgetch(cw);
+}
+
+/*
+    wait_for()
+        Sit around until the guy types the right key
+*/
+
+void
+w_wait_for(WINDOW *w, int ch)
 {
     char    c;
 
     if (ch == '\n')
-	while ((c = readchar()) != '\n' && c != '\r')
-	    continue;
+        while ((c = readcharw(w)) != '\n' && c != '\r')
+            continue;
     else
-	while (readchar() != ch)
-	    continue;
+        while (readcharw(w) != ch)
+            continue;
+}
+
+void
+wait_for(int ch)
+{
+    w_wait_for(cw, ch);
 }
 
 /*
- * show_win: function used to display a window and wait before returning
- */
+    show_win()
+        function used to display a window and wait before returning
+*/
 
-show_win(scr, message)
-WINDOW  *scr;
-char    *message;
+void
+show_win(WINDOW *scr, char *message)
 {
     mvwaddstr(scr, 0, 0, message);
     touchwin(scr);
@@ -256,112 +252,210 @@ char    *message;
 }
 
 /*
- * restscr: Restores the screen to the terminal
- */
-restscr(scr)
-WINDOW  *scr;
+    restscr()
+        Restores the screen to the terminal
+*/
+
+void
+restscr(WINDOW *scr)
 {
     clearok(scr, TRUE);
     touchwin(scr);
 }
 
 /*
- * add_line: Add a line to the list of discoveries
- */
+    add_line()
+        Add a line to the list of discoveries
+*/
 
-add_line(fmt, arg)
-char    *fmt, *arg;
+void
+add_line(const char *fmt, ...)
 {
     WINDOW  *tw;
+    va_list ap;
 
-    if (line_cnt == 0) {
-	wclear(hw);
-	if (inv_type == INV_SLOW)
-	    mpos = 0;
+    va_start(ap, fmt);
+
+    if (line_cnt == 0)
+    {
+        wclear(hw);
+
+        if (inv_type == INV_SLOW)
+            mpos = 0;
     }
-    if (inv_type == INV_SLOW) {
-	if (*fmt != '\0')
-	    msg(fmt, arg);
-	line_cnt++;
+
+    if (inv_type == INV_SLOW)
+    {
+        if ( (fmt != NULL) && (*fmt != '\0') )
+            vmsg(fmt, ap);
+        line_cnt++;
     }
-    else {
-	/* chai: was if (line_cnt >= LINES - 1 || fmt == NULL) { */
-	if (line_cnt >= LINES - 2 || fmt == NULL) {
-	    if (fmt == NULL && !newpage && inv_type == INV_OVER) {
-		tw = newwin(line_cnt + 2, COLS, 0, 0);
-		overwrite(hw, tw);
-		wstandout(tw);
-		mvwaddstr(tw, line_cnt, 0, spacemsg);
-		wstandend(tw);
-		touchwin(tw);
-		wrefresh(tw);
-		wait_for(' ');
-		delwin(tw);
-		touchwin(cw);
-	    }
-	    else {
-		wstandout(hw);
-		mvwaddstr(hw, LINES - 1, 0, spacemsg);
-		wstandend(hw);
-		wrefresh(hw);
-		wait_for(' ');
-		clearok(curscr, TRUE);
-		wclear(hw);
-	    }
-	    newpage = TRUE;
-	    line_cnt = 0;
-	}
-	if (fmt != NULL && !(line_cnt == 0 && *fmt == '\0')) {
-	    mvwprintw(hw, line_cnt++, 0, fmt, arg);
-	    lastfmt = fmt;
-	    lastarg = arg;
-	}
+    else
+    {
+        if ( (line_cnt >= LINES - 2) || (fmt == NULL)) /* end 'o page */
+        {
+            if (fmt == NULL && !newpage && inv_type == INV_OVER)
+            {
+                tw = newwin(line_cnt + 2, COLS, 0, 0);
+                overwrite(hw, tw);
+                wstandout(tw);
+                mvwaddstr(tw, line_cnt, 0, spacemsg);
+                wstandend(tw);
+                touchwin(tw);
+                wrefresh(tw); 
+                wait_for(' ');
+                delwin(tw);
+                touchwin(cw);
+            }
+            else
+            {
+                wstandout(hw);
+                mvwaddstr(hw, LINES - 1, 0, spacemsg);
+                wstandend(hw);
+                wrefresh(hw);
+                w_wait_for(hw, ' ');
+                touchwin(cw);
+                wclear(hw);
+            }
+            newpage = TRUE;
+            line_cnt = 0;
+        }
+
+        /* draw line */
+        if (fmt != NULL && !(line_cnt == 0 && *fmt == '\0'))
+        {
+            static char tmpbuf[1024];
+			
+            vsprintf(tmpbuf, fmt, ap);
+            mvwprintw(hw, line_cnt++, 0, tmpbuf);
+        }
     }
 }
 
 /*
- * end_line: End the list of lines
- */
-end_line()
+    end_line()
+        End the list of lines
+*/
+
+void
+end_line(void)
 {
     if (inv_type != INV_SLOW)
-	if (line_cnt == 1 && !newpage) {
-	    mpos = 0;
-	    msg(lastfmt, lastarg);
-	}
-	else
-	    add_line(NULL);
+        add_line(NULL);
+
     line_cnt = 0;
     newpage = FALSE;
 }
 
-
 /*
- * hearmsg: Call msg() only if you are not deaf
- */
-hearmsg(fmt, va_alist)
-char    *fmt;
-va_dcl
+    hearmsg()
+        Call msg() only if you are not deaf
+*/
+
+void
+hearmsg(const char *fmt, ...)
 {
+    va_list ap;
+
+    va_start(ap, fmt);
+
     if (off(player, ISDEAF))
-	msg(fmt, va_alist);
-    else if (wizard) {
-	msg("Couldn't hear: ");
-	msg(fmt, va_alist);
+        vmsg(fmt, ap);
+    else if (wizard)
+    {
+        msg("Couldn't hear: ");
+        vmsg(fmt, ap);
     }
+
+    va_end(ap);
 }
 
 /*
- * seemsg: Call msg() only if you are not blind
- */
-seemsg(fmt, va_alist)
-char    *fmt;
-va_dcl
+    seemsg()
+        Call msg() only if you are not blind
+*/
+
+void
+seemsg(const char *fmt, ...)
 {
+    va_list ap;
+
+    va_start(ap, fmt);
+
     if (off(player, ISBLIND))
-	msg(fmt, va_alist);
-    else if (wizard) {
-	msg("Couldn't see: ");
-	msg(fmt, va_alist);
+        vmsg(fmt, ap);
+    else if (wizard)
+    {
+        msg("Couldn't see: ");
+        vmsg(fmt, ap);
     }
+
+    va_end(ap);
 }
+
+int
+get_str(char *buffer, WINDOW *win)
+{
+    char    *sp, c;
+    int oy, ox;
+    char    buf[2 * LINELEN];
+
+    wrefresh(win);
+    getyx(win, oy, ox);
+
+    /* loop reading in the string, and put it in a temporary buffer */
+
+    for (sp = buf; (c = readcharw(win)) != '\n' &&
+         c != '\r' &&
+         c != '\033' &&
+         c != '\007' &&
+         sp < &buf[LINELEN - 1];
+         wclrtoeol(win), wrefresh(win))
+    {
+	if ((c == '\b') || (c == 0x7f))
+        {
+            if (sp > buf)
+            {
+                size_t i;
+
+                sp--;
+
+                for (i = strlen(unctrl(*sp)); i; i--)
+                    waddch(win, '\b');
+            }
+            continue;
+        }
+        else if (c == '\0')
+        {
+            sp = buf;
+            wmove(win, oy, ox);
+            continue;
+        }
+        else if (sp == buf && c == '-' && win == hw)
+            break;
+
+        *sp++ = c;
+        waddstr(win, unctrl(c));
+    }
+
+    *sp = '\0';
+
+    if (sp > buf)       /* only change option if something has been typed */
+        strncpy(buffer, buf, strlen(buf)+1);
+
+    wmove(win, oy, ox);
+    waddstr(win, buffer);
+    waddch(win, '\n');
+    wrefresh(win);
+
+    if (win == cw)
+        mpos += (int)(sp - buf);
+
+    if (c == '-')
+        return(MINUS);
+    else if (c == '\033' || c == '\007')
+        return(QUIT);
+    else
+        return(NORM);
+}
+

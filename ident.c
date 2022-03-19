@@ -41,8 +41,8 @@ linked_list *ident_list = NULL; /* master list of all items */
  * returned. If not, one is allocated and returned to the user. The
  * identifier remains constant as long as the object is in the game.
  */
-get_ident(obj_p)
-struct object   *obj_p;
+int
+get_ident(struct object *obj_p)
 {
     int obj_type = obj_p->o_type;
     linked_list *list_p;    /* pointer into ident_list */
@@ -74,10 +74,10 @@ struct object   *obj_p;
      * it. The proper id is in new_id, and the place to put it is right
      * after new_place_p.
      */
-    list_p = (struct linked_list *) new(sizeof(*list_p));
+    list_p = (struct linked_list *) new_alloc(sizeof(*list_p));
     _attach_after(&ident_list, new_place_p, list_p);
     identifier(obj_p) = new_id;
-    list_p->l_data = (char *) obj_p;
+    list_p->data.obj = obj_p;
     return (new_id);
 }
 
@@ -90,8 +90,7 @@ struct object   *obj_p;
  */
 
 object  *
-get_obj(type, ident)
-int type, ident;
+get_obj(int type, int ident)
 {
     linked_list *list_p;
     object  *obj_p;
@@ -110,8 +109,8 @@ int type, ident;
  * Frees up an identifier by removing the list entry that contains that item. If
  * the item isn't found, nothing is done.
  */
-free_ident(obj_p)
-struct object   *obj_p;
+void
+free_ident(struct object *obj_p)
 {
     linked_list *list_p;
 
@@ -131,8 +130,8 @@ struct object   *obj_p;
  * Converts a printable id from print_letters to the real thing by getting the
  * index.
  */
-unprint_id(print_id)
-char    print_id;
+int
+unprint_id(char print_id)
 {
     char    *id_p;
 
@@ -148,6 +147,7 @@ char    print_id;
  * returns the size of the print list
  */
 
+int
 max_print()
 {
     return (sizeof(print_letters) - 2); /* 1 for blank and 1 for EOS

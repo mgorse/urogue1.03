@@ -24,8 +24,6 @@
 
 #include <ctype.h>
 #include "rogue.h"
-#include "stepok.h"
-#include "death.h"
 
 /*
  * Used to hold the new hero position
@@ -37,8 +35,8 @@ coord   nh;
  * do_run: Start the hero running
  */
 
-do_run(ch)
-char    ch;
+void
+do_run(char ch)
 {
     running = TRUE;
     after = FALSE;
@@ -55,8 +53,8 @@ char    ch;
  * him.
  */
 
-corr_move(dy, dx)
-int dy, dx;
+void
+corr_move(int dy, int dx)
 {
     char    ch;
     short   legal = 0;  /* Number of legal alternatives */
@@ -140,8 +138,8 @@ int dy, dx;
  * consequences (fighting, picking up, etc.)
  */
 
-do_move(dy, dx)
-int dy, dx;
+void
+do_move(int dy, int dx)
 {
     char    ch;
     coord   old_hero;
@@ -185,9 +183,10 @@ int dy, dx;
 	    turn_off(player, ISFLEE);
 	    msg("You regain your composure.");
 	}
-	else if (DISTANCE(nh.y, nh.x, player.t_dest.y,
-	    player.t_dest.x) <
-	DISTANCE(hero.y, hero.x, player.t_dest.y, player.t_dest.x))
+	else if (DISTANCE(nh.y, nh.x, player.t_chasee->t_pos.y,
+	    player.t_chasee->t_pos.x) <
+	DISTANCE(hero.y, hero.x, player.t_chasee->t_pos.y,
+	    player.t_chasee->t_pos.x))
 	    return;
     }
 
@@ -205,8 +204,8 @@ int dy, dx;
     }
 
     if (on(player, ISDISGUISE) && rnd(11 * pstats.s_dext) == 0) {
-	extinguish(undisguise);
-	undisguise();
+	extinguish_fuse(FUSE_UNDISGUISE);
+	undisguise(NULL);
     }
 
     /* assume he's not in a wall */
@@ -355,8 +354,8 @@ int dy, dx;
  * move.
  */
 
-light(cp)
-coord   *cp;
+void
+light(coord *cp)
 {
     struct room *rp;
     int j, k, x, y;
@@ -495,8 +494,7 @@ coord   *cp;
  */
 
 bool
-blue_light(flags)
-int flags;
+blue_light(int flags)
 {
     struct room *rp;
     bool    blessed = (flags & ISBLESSED);
@@ -557,8 +555,8 @@ int flags;
  * show: returns what a certain thing will display as to the un-initiated
  */
 
-show(y, x)
-int y, x;
+char
+show(int y, int x)
 {
     char    ch = winat(y, x);
     struct linked_list  *it;
@@ -598,9 +596,8 @@ int y, x;
  * be_trapped: The guy stepped on a trap.... Make him pay.
  */
 
-be_trapped(th, tc)
-struct thing    *th;
-coord   *tc;
+char
+be_trapped(struct thing *th, coord *tc)
 {
     struct trap *tp;
     char    ch, *mname;
@@ -667,10 +664,10 @@ coord   *tc;
 		endmsg();
 		if (off(player, ISCLEAR) && rnd(4) < 3) {
 		    if (on(player, ISHUH))
-			lengthen(unconfuse, rnd(8) +
+			lengthen_fuse(FUSE_UNCONFUSE, rnd(8) +
 			    HUHDURATION);
 		    else
-			fuse(unconfuse, 0, rnd(8) +
+			light_fuse(FUSE_UNCONFUSE, 0, rnd(8) +
 			    HUHDURATION, AFTER);
 		    turn_on(player, ISHUH);
 		}
@@ -781,10 +778,10 @@ coord   *tc;
 		if (off(player, ISCLEAR)) {
 		    msg("Wait, what's going on here. Huh? What? Who?");
 		    if (on(player, ISHUH))
-			lengthen(unconfuse, rnd(8) +
+			lengthen_fuse(FUSE_UNCONFUSE, rnd(8) +
 			    HUHDURATION);
 		    else
-			fuse(unconfuse, 0, rnd(8) +
+			light_fuse(FUSE_UNCONFUSE, 0, rnd(8) +
 			    HUHDURATION, AFTER);
 		    turn_on(player, ISHUH);
 		}
@@ -891,7 +888,7 @@ coord   *tc;
 	    if (is_player) {
 		if (on(player, ISELECTRIC)) {
 		    msg("Oh no!!! The water shorts you out");
-		    extinguish(unelectrify);
+		    extinguish_fuse(FUSE_UNELECTRIFY);
 		    turn_off(player, ISELECTRIC);
 		    if (!is_wearing(R_ELECTRESIST)) {
 			if ((pstats.s_hpt -= roll(1, 10)) <= 0) {
@@ -907,9 +904,9 @@ coord   *tc;
 			teleport(); /* teleport away */
 			if (off(player, ISCLEAR)) {
 			    if (on(player, ISHUH))
-				lengthen(unconfuse, rnd(8) + HUHDURATION);
+				lengthen_fuse(FUSE_UNCONFUSE, rnd(8) + HUHDURATION);
 			    else
-				fuse(unconfuse, 0, rnd(8) + HUHDURATION, AFTER);
+				light_fuse(FUSE_UNCONFUSE, 0, rnd(8) + HUHDURATION, AFTER);
 			    turn_on(player, ISHUH);
 			}
 			else
@@ -923,9 +920,9 @@ coord   *tc;
 			msg("You here a faint groan from below.");
 			if (off(player, ISCLEAR)) {
 			    if (on(player, ISHUH))
-				lengthen(unconfuse, rnd(8) + HUHDURATION);
+				lengthen_fuse(FUSE_UNCONFUSE, rnd(8) + HUHDURATION);
 			    else
-				fuse(unconfuse, 0, rnd(8) + HUHDURATION, AFTER);
+				light_fuse(FUSE_UNCONFUSE, 0, rnd(8) + HUHDURATION, AFTER);
 			    turn_on(player, ISHUH);
 			}
 			else
@@ -938,9 +935,9 @@ coord   *tc;
 			msg("You find yourself in strange surroundings.");
 			if (off(player, ISCLEAR)) {
 			    if (on(player, ISHUH))
-				lengthen(unconfuse, rnd(8) + HUHDURATION);
+				lengthen_fuse(FUSE_UNCONFUSE, rnd(8) + HUHDURATION);
 			    else
-				fuse(unconfuse, 0, rnd(8) + HUHDURATION, AFTER);
+				light_fuse(FUSE_UNCONFUSE, 0, rnd(8) + HUHDURATION, AFTER);
 			    turn_on(player, ISHUH);
 			}
 			else
@@ -988,10 +985,10 @@ coord   *tc;
 		endmsg();
 		if (off(player, ISCLEAR)) {
 		    if (on(player, ISHUH))
-			lengthen(unconfuse, rnd(8) +
+			lengthen_fuse(FUSE_UNCONFUSE, rnd(8) +
 			    HUHDURATION);
 		    else {
-			fuse(unconfuse, 0, rnd(8) +
+			light_fuse(FUSE_UNCONFUSE, 0, rnd(8) +
 			    HUHDURATION, AFTER);
 			turn_on(player, ISHUH);
 		    }
@@ -1113,13 +1110,13 @@ coord   *tc;
 		    msg("The %s is splashed by water.", mname);
 	    }
     }
-    flushout();     /* flush typeahead */
     return (ch);
 }
 
 /*
  * dip_it: Dip an object into a magic pool
  */
+void
 dip_it()
 {
     struct linked_list  *what;
@@ -1289,8 +1286,7 @@ dip_it()
  */
 
 struct trap *
-trap_at(y, x)
-int y, x;
+trap_at(int y, int x)
 {
     struct trap *tp, *ep;
 
@@ -1310,9 +1306,8 @@ int y, x;
  * set_trap: set a trap at (y, x) on screen.
  */
 
-set_trap(tp, y, x)
-struct thing    *tp;
-int y, x;
+void
+set_trap(struct thing *tp, int y, int x)
 {
     bool    is_player = (tp == &player);
     int selection = rnd(7) + 1;
@@ -1392,8 +1387,7 @@ int y, x;
  */
 
 coord   *
-rndmove(who)
-struct thing    *who;
+rndmove(struct thing *who)
 {
     int x, y;
     int ex, ey, nopen = 0;
@@ -1428,8 +1422,8 @@ struct thing    *who;
 /*
  * isatrap: Returns TRUE if this character is some kind of trap
  */
-isatrap(ch)
-char    ch;
+bool
+isatrap(char ch)
 {
     switch (ch) {
 	case DARTTRAP:
@@ -1449,3 +1443,56 @@ char    ch;
 	    return (FALSE);
     }
 }
+
+/*
+    step_ok()
+        returns true if it is ok for type to step on ch flgptr will be
+        NULL if we don't know what the monster is yet!
+*/
+
+int
+step_ok(int y, int x, int can_on_monst, struct thing *flgptr)
+{
+    struct linked_list *item;
+    char ch;
+
+    /* What is here?  Don't check monster window if MONSTOK is set */
+
+    if (can_on_monst == MONSTOK)
+        ch = CCHAR( mvinch(y, x) );
+    else
+        ch = winat(y, x);
+
+    switch (ch)
+    {
+        case ' ':
+        case '|':
+        case '-':
+        case SECRETDOOR:
+            if (flgptr && on(*flgptr, CANINWALL))
+                return(TRUE);
+
+            return(FALSE);
+
+        case SCROLL:
+            /*
+             * If it is a scroll, it might be a scare monster scroll so
+             * we need to look it up to see what type it is.
+             */
+
+            if (flgptr && flgptr->t_ctype == C_MONSTER)
+            {
+                item = find_obj(y, x, TRUE);
+
+                if (item != NULL && (OBJPTR(item))->o_type == SCROLL
+                     && (OBJPTR(item))->o_which == S_SCARE
+                     && rnd(flgptr->t_stats.s_intel) < 12)
+                return(FALSE); /* All but smart ones are scared */
+            }
+            return(TRUE);
+
+        default:
+            return(!isalpha(ch));
+    }
+}
+

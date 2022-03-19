@@ -23,8 +23,9 @@
 */
 
 #include <ctype.h>
+#include <malloc.h>
+#include <string.h>
 #include "rogue.h"
-#include "stepok.h"
 
 /*
  * read_scroll - read a scroll (or effect a scroll-like spell)
@@ -33,10 +34,8 @@
  * which:   which S_SCROLL (-1 means ask from pack)
  * flags:   ISBLESSED, ISCURSED
  */
-read_scroll(reader, which, flags)
-struct thing    *reader;
-int which;
-int flags;
+void
+read_scroll(struct thing *reader, int which, int flags)
 {
     struct object   *obj;
     struct linked_list  *item, *nitem;
@@ -88,8 +87,8 @@ int flags;
 	when    S_CURING:   /* A cure disease spell */
 	    if (on(player, HASINFEST) || on(player, HASDISEASE)) {
 		if (!cursed && on(player, HASDISEASE)) {
-		    extinguish(cure_disease);
-		    cure_disease();
+		    extinguish_fuse(FUSE_CURE_DISEASE);
+		    cure_disease(NULL);
 		}
 		if (on(player, HASINFEST)) {
 		    msg(terse ? "You feel yourself improving."
@@ -368,19 +367,18 @@ int flags;
 		msg("You are whisked away to another region.");
 	    }
 	    else {
-		int rm;
 		struct room *cur_room;
 
 		cur_room = roomin(&hero);
-		rm = teleport();
+		teleport();
 		if (is_scroll)
 		    know_items[TYP_SCROLL][S_SELFTELEP] = TRUE;
 	    }
 	    if (off(player, ISCLEAR)) {
 		if (on(player, ISHUH))
-		    lengthen(unconfuse, rnd(4) + 4);
+		    lengthen_fuse(FUSE_UNCONFUSE, rnd(4) + 4);
 		else {
-		    fuse(unconfuse, 0, rnd(4) + 4, AFTER);
+		    light_fuse(FUSE_UNCONFUSE, 0, rnd(4) + 4, AFTER);
 		    turn_on(player, ISHUH);
 		}
 	    }
@@ -500,7 +498,7 @@ int flags;
 		addch(WALL);
 
 		if (on(player, CANINWALL)) {
-		    extinguish(unphase);
+		    extinguish_fuse(FUSE_UNPHASE);
 		    turn_off(player, CANINWALL);
 		    msg("Your dizzy feeling leaves you.");
 		}
@@ -812,12 +810,12 @@ int flags;
 	when    S_ELECTRIFY:
 	    if (on(player, ISELECTRIC)) {
 		msg("Your violet glow brightens for an instant.");
-		lengthen(unelectrify, 4 + rnd(8));
+		lengthen_fuse(FUSE_UNELECTRIFY, 4 + rnd(8));
 	    }
 	    else {
 		msg("Your body begins to glow violet and shoot sparks.");
 		turn_on(player, ISELECTRIC);
-		fuse(unelectrify, 0, (blessed ? 3 : 1) * WANDERTIME, AFTER);
+		light_fuse(FUSE_UNELECTRIFY, 0, (blessed ? 3 : 1) * WANDERTIME, AFTER);
 		light(&hero);
 	    }
 	    if (is_scroll)
@@ -842,7 +840,7 @@ int flags;
 
 		    if (th->t_stats.s_intel < charm_power && off(*th, ISUNIQUE)) {
 			turn_on(*th, ISCHARMED);
-			runto(&th->t_pos, &hero);
+			chase_it(&th->t_pos, &player);
 		    }
 		}
 	    }
@@ -861,7 +859,7 @@ int flags;
 				th = THINGPTR(mon);
 				if (th->t_stats.s_intel < charm_power && off(*th, ISUNIQUE)) {
 				    turn_on(*th, ISCHARMED);
-				    runto(&th->t_pos, &hero);
+				    chase_it(&th->t_pos, &player);
 				}
 			    }
 			}
@@ -895,18 +893,18 @@ int flags;
 		turn_on(*tp, WASSUMMONED);
 		turn_on(player, HASSUMMONED);
 		msg("You have summoned a %s.", monsters[tp->t_index].m_name);
-		fuse(unsummon, (int) llp, WANDERTIME + rnd(pstats.s_lvl), AFTER);
+		light_fuse(FUSE_UNSUMMON, llp, WANDERTIME + rnd(pstats.s_lvl), AFTER);
 	    }
 	}
 	when    S_REFLECT:
 	    if (on(player, CANREFLECT)) {
 		msg("The sparkling around you brightens momentarily.");
-		lengthen(ungaze, 5 + rnd(10));
+		lengthen_fuse(FUSE_UNGAZE, 5 + rnd(10));
 	    }
 	    else {
 		msg("Shiny particles sparkle all around you.");
 		turn_on(player, CANREFLECT);
-		fuse(ungaze, 0, (blessed ? 3 : 1) * WANDERTIME, AFTER);
+		light_fuse(FUSE_UNGAZE, 0, (blessed ? 3 : 1) * WANDERTIME, AFTER);
 	    }
 	when    S_SUMFAMILIAR:{
 	    short   fam_type = 0;
@@ -968,8 +966,10 @@ int flags;
 				if (on(*th, ISUNDEAD) || on(*th, ISUNIQUE))
 				    continue;
 				gotone = TRUE;
-				turn_on(*th, ISFLEE);
-				th->t_dest = player.t_pos;
+                                turn_on(*th, ISFLEE);
+                                th->t_chasee = &player;
+                                th->t_ischasing = FALSE;
+                                th->t_horde = NULL;
 			    }
 			}
 		    }
@@ -982,12 +982,12 @@ int flags;
 	when    S_MSHIELD:  /* deal with blessed/cursed later */
 	    if (on(player, HASMSHIELD)) {
 		seemsg("The fog around you thickens.");
-		lengthen(unmshield, (blessed ? 3 : 1) * HEROTIME);
+		lengthen_fuse(FUSE_UNMSHIELD, (blessed ? 3 : 1) * HEROTIME);
 	    }
 	    else {
 		seemsg("A fog forms around you.");
 		turn_on(player, HASMSHIELD);
-		fuse(unmshield, 0, (blessed ? 3 : 1) * HEROTIME, AFTER);
+		light_fuse(FUSE_UNMSHIELD, 0, (blessed ? 3 : 1) * HEROTIME, AFTER);
 	    }
 	    if (is_scroll)
 		know_items[TYP_SCROLL][S_MSHIELD] = TRUE;
@@ -1007,7 +1007,7 @@ int flags;
 	else if (askme && !know_items[TYP_SCROLL][which] && guess_items[TYP_SCROLL][which] == NULL) {
 	    msg(terse ? "Call it: " : "What do you want to call it? ");
 	    if (get_str(buf, cw) == NORM) {
-		guess_items[TYP_SCROLL][which] = new(strlen(buf) + 1);
+		guess_items[TYP_SCROLL][which] = new_alloc(strlen(buf) + 1);
 		strcpy(guess_items[TYP_SCROLL][which], buf);
 	    }
 	}
@@ -1019,10 +1019,9 @@ int flags;
  */
 
 struct linked_list  *
-creat_mons(person, monster, message)
-struct thing    *person;    /* Where to create next to */
-short   monster;
-bool    message;
+creat_mons(struct thing    *person,    /* Where to create next to */
+           int   monster,
+           bool    message)
 {
     coord   *mp;
 
@@ -1036,7 +1035,7 @@ bool    message;
 	nitem = new_item(sizeof(struct thing));
 	new_monster(nitem, monster == 0 ? randmonster(NOWANDER, NOGRAB)
 		: monster, mp, MAXSTATS);
-	runto(mp, &hero);
+	chase_it(mp, &player);
 	/* If the monster is on a trap, trap it */
 	if (isatrap(mvinch(mp->y, mp->x))) {
 	    debug("Monster trapped during creat_mons.");
@@ -1055,8 +1054,7 @@ bool    message;
  */
 
 coord   *
-place_mons(y, x)
-int x, y;
+place_mons(int y, int x)
 {
     static coord    place;
     int distance, xx, yy, appear;
@@ -1095,8 +1093,8 @@ int x, y;
  * This subroutine determines if an object that is a ring is being worn by
  * the hero  by Bruce Dautrich 4/3/84
  */
-is_r_on(obj)
-struct object   *obj;
+bool
+is_r_on(struct object *obj)
 {
     if (obj == cur_ring[LEFT_1] || obj == cur_ring[LEFT_2] ||
 	obj == cur_ring[LEFT_3] || obj == cur_ring[LEFT_4] ||
@@ -1112,10 +1110,7 @@ struct object   *obj;
 /*
  * monread - monster gets the effect
  */
-monread(reader, which, flags)
-struct thing    *reader;
-int which;
-int flags;
+void monread(struct thing *reader, int which, int flags)
 {
     struct stats    *curp = &(reader->t_stats);
     struct stats    *maxp = &(reader->maxstats);
@@ -1127,7 +1122,7 @@ int flags;
 	    /* If monster was suffocating, stop it */
 	    if (on(*reader, DIDSUFFOCATE)) {
 		turn_off(*reader, DIDSUFFOCATE);
-		extinguish(suffocate);
+		extinguish_fuse(FUSE_SUFFOCATE);
 	    }
 
 	    /* If monster held us, stop it */

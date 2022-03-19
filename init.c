@@ -1,5 +1,5 @@
 /*
-    init.c  -  global variable initializaton
+    init.c  -  global variable initialization
    
     Last Modified: Dec 29, 1990
 
@@ -23,6 +23,7 @@
 */
 
 #include <ctype.h>
+#include <string.h>
 #include "rogue.h"
 
 static char *rainbow[] = {
@@ -95,10 +96,195 @@ static char *metal[] = {
 
 #define NMETAL (sizeof metal / sizeof (char *))
 
+const char *monstern = "monster";
+char *spacemsg = "--Press SPACE to continue--";
+char *morestr  = "--More--";
+char *retstr   = "[Press RETURN to continue]";
+
+/* 15 named levels */
+
+const char *cnames[C_NOTSET][15] =
+{
+    {   "Veteran", "Warrior",
+        "Swordsman", "Hero",    /* Fighter */
+        "Swashbuckler", "Myrmidon",
+        "Champion", "Superhero",
+        "Lord", "Lord",
+        "Lord", "Lord",
+        "Lord", "Lord",
+        "Lord"
+    },
+
+    {   "Gallant", "Keeper",
+        "Protector", "Defender",    /* Paladin */
+        "Warder", "Guardian",
+        "Chevalier", "Justiciar",
+        "Paladin", "Paladin",
+        "Paladin", "Paladin",
+        "Paladin", "Paladin",
+        "Paladin"
+    },
+
+    {   "Runner", "Strider",
+        "Scout", "Courser", /* Ranger */
+        "Tracker", "Guide",
+        "Pathfinder", "Ranger",
+        "Ranger Knight", "Ranger Lord",
+        "Ranger Lord", "Ranger Lord",
+        "Ranger Lord", "Ranger Lord",
+        "Ranger Lord"
+    },
+
+    {   "Acolyte", "Adept",
+        "Priest", "Curate", /* Cleric */
+        "Prefect", "Canon",
+        "Lama", "Patriarch",
+        "High Priest", "High Priest",
+        "High Priest", "High Priest",
+        "High Priest", "High Priest",
+        "High Priest"
+    },
+
+    {   "Aspirant", "Ovate",   /* Druid */
+        "Initiate of the 1st Circle", "Initiate of the 2nd Circle",
+        "Initiate of the 3rd Circle", "Initiate of the 4th Circle",
+        "Initiate of the 5th Circle", "Initiate of the 6th Circle",
+        "Initiate of the 7th Circle", "Initiate of the 8th Circle",
+        "Initiate of the 9th Circle", "Druid",
+        "Archdruid", "The Great Druid",
+        "The Grand Druid"
+    },
+
+    {   "Prestidigitator", "Evoker",
+        "Conjurer", "Theurgist",    /* Magic User */
+        "Thaumaturgist", "Magician",
+        "Enchanter", "Warlock",
+        "Sorcerer", "Necromancer",
+        "Wizard", "Wizard",
+        "Wizard", "Wizard",
+        "Wizard"
+    },
+
+    {   "Prestidigitator", "Minor Trickster",
+        "Trickster", "Master Trickster",    /* Illusionist */
+        "Cabalist", "Visionist",
+        "Phantasmist", "Apparitionist",
+        "Spellbinder", "Illusionist",
+        "Illusionist", "Illusionist",
+        "Illusionist", "Illusionist",
+        "Illusionist"
+    },
+
+    {   "Rogue", "Footpad",
+        "Cutpurse", "Robber",   /* Thief */
+        "Burglar", "Filcher",
+        "Sharper", "Magsman",
+        "Thief", "Master Thief",
+        "Master Thief", "Master Thief",
+        "Master Thief", "Master Thief",
+        "Master Thief"
+    },
+
+    {   "Bravo", "Rutterkin",
+        "Waghalter", "Murderer",    /* Assasin */
+        "Thug", "Killer",
+        "Cutthroat", "Executioner",
+        "Assassin", "Expert Assassin",
+        "Senior Assassin", "Chief Assassin",
+        "Prime Assassin", "Guildmaster Assassin",
+        "Grandfather of Assassins"
+    },
+
+    {   "Ninja", "Ninja",
+        "Ninja", "Ninja",   /* Ninja */
+        "Ninja", "Ninja",
+        "Ninja", "Ninja",
+        "Ninja", "Ninja",
+        "Ninja", "Ninja",
+        "Ninja", "Ninja",
+        "Ninja"
+    }
+};
+
+const struct h_list helpstr[] =
+{
+    { '?',      "  prints help"                         },
+    { '/',      "  identify object"                     },
+    { 'h',      "  left"                                },
+    { 'j',      "  down"                                },
+    { 'k',      "  up"                                  },
+    { 'l',      "  right"                               },
+    { 'y',      "  up & left"                           },
+    { 'u',      "  up & right"                          },
+    { 'b',      "  down & left"                         },
+    { 'n',      "  down & right"                        },
+    { '<',      "SHIFT><dir> run that way"              },
+    { 'm',      "<dir> move onto without picking up"    },
+    { 't',       "<dir> throw something"                },
+    { 'z',      "<dir> zap a wand or staff"             },
+    { '>',      "  go down a staircase"                 },
+    { 's',      "  search for trap/secret door"         },
+    { '.',      "  rest for a while"                    },
+    { ',',      "  pick up an object"                   },
+    { 'i',      "  inventory all items"                 },
+    { 'I',      "  inventory type of item"              },
+    { 'q',      "  quaff potion"                        },
+    { 'r',      "  read paper"                          },
+    { 'e',      "  eat food"                            },
+    { 'w',      "  wield a weapon"                      },
+    { 'W',      "  wear armor"                          },
+    { 'T',      "  take armor off"                      },
+    { 'P',      "  put on ring"                         },
+    { 'R',      "  remove ring"                         },
+    { 'A',      "  activate/apply an artifact"          },
+    { 'd',      "  drop object"                         },
+    { 'C',      "  call object (generic)"               },
+    { 'M',      "  mark object (specific)"              },
+    { 'o',      "  examine/set options"                 },
+    { 'c',      "  cast a spell/say a prayer"           },
+    { 'p',      "  pray for help (risky)"               },
+    { 'a',      "  affect the undead"                   },
+    { '^',      "  set a trap"                          },
+    { 'D',      "  dip something (into a pool)"         },
+    { 20,       "<dir>  take (steal) from (direction)"  }, /* ctrl-t */
+    { 18,       "   redraw screen"                      }, /* ctrl-r */
+    { 16,       "   back up to 10 previous messages"    }, /* ctrl-p */
+    { ESCAPE,   "   cancel command"                     },
+    { 'v',      "  print program version number"        },
+    { 'S',      "  save game"                           },
+    { 'Q',      "  quit"                                },
+    { '=',      "  listen for monsters"                 },
+    { 'f',      "<dir> fight monster"                   },
+    { 'F',      "<dir> fight monster to the death"      },
+
+    /* Wizard commands.  Identified by (h_ch != 0 && h_desc == 0). */
+
+    {'-',       0                                       },
+    { 23,       "   enter wizard mode"                  }, /* ctrl-w */
+    { 23,       "v  toggle wizard verbose mode"         },
+    { 23,       "e  exit wizard mode"                   },
+    { 23,       "r  random number check"                },
+    { 23,       "s  system statistics"                  },
+    { 23,       "F  food statistics"                    },
+    { 23,       "f  floor map"                          },
+    { 23,       "m  see monster"                        },
+    { 23,       "M  create monster"                     },
+    { 23,       "c  create item"                        },
+    { 23,       "i  inventory level"                    },
+    { 23,       "I  identify item"                      },
+    { 23,       "t  random teleport"                    },
+    { 23,       "g  goto level"                         },
+    { 23,       "C  charge item"                        },
+    { 23,       "w  print worth of object"              },
+    { 23,       "o  improve stats and pack"             },
+    { 0,        0                                       }
+};
+
 /*
  * init_player: roll up the rogue
  */
 
+void
 init_player()
 {
     bool    special = rnd(100) < 20;
@@ -283,6 +469,7 @@ init_player()
 /*
  * Initialize flags on startup
  */
+void
 init_flags()
 {
     switch (player.t_ctype) {
@@ -307,6 +494,7 @@ init_flags()
 /*
  * init_things Initialize the probabilities for types of things
  */
+void
 init_things()
 {
     register struct magic_item  *mp;
@@ -319,6 +507,7 @@ init_things()
 /*
  * init_fd Initialize the probabilities for types of food
  */
+void
 init_fd()
 {
     register struct magic_item  *mp;
@@ -332,6 +521,7 @@ init_fd()
  * init_colors: Initialize the potion color scheme for this time
  */
 
+void
 init_colors()
 {
     register int    i;
@@ -341,8 +531,9 @@ init_colors()
 	do {
 	    str = rainbow[rnd(NCOLORS)];
 	} until(isupper(*str));
-	*str = tolower(*str);
-	p_colors[i] = str;
+	p_colors[i]    = strdup(str);
+	p_colors[i][0] = (char) tolower(p_colors[i][0]);
+
 	know_items[TYP_POTION][i] = FALSE;
 	guess_items[TYP_POTION][i] = NULL;
 	if (i > 0)
@@ -355,6 +546,7 @@ init_colors()
  * init_names: Generate the names of the various scrolls
  */
 
+void
 init_names()
 {
     register int    nsyl;
@@ -375,7 +567,7 @@ init_names()
 	    *cp++ = ' ';
 	}
 	*--cp = '\0';
-	s_names[i] = (char *) new(strlen(prbuf) + 1);
+	s_names[i] = (char *) new_alloc(strlen(prbuf) + 1);
 	know_items[TYP_SCROLL][i] = FALSE;
 	guess_items[TYP_SCROLL][i] = NULL;
 	strcpy(s_names[i], prbuf);
@@ -389,6 +581,7 @@ init_names()
  * init_stones: Initialize the ring stone setting scheme for this time
  */
 
+void
 init_stones()
 {
     register int    i;
@@ -398,8 +591,8 @@ init_stones()
 	do {
 	    str = stones[rnd(NSTONES)];
 	} until(isupper(*str));
-	*str = tolower(*str);
-	r_stones[i] = str;
+	r_stones[i]    = strdup(str);
+	r_stones[i][0] = (char) tolower( r_stones[i][0] );
 	know_items[TYP_RING][i] = FALSE;
 	guess_items[TYP_RING][i] = NULL;
 	if (i > 0)
@@ -412,6 +605,7 @@ init_stones()
  * init_materials: Initialize the construction materials for wands and staffs
  */
 
+void
 init_materials()
 {
     register int    i;
@@ -430,8 +624,8 @@ init_materials()
 		    ws_type[i] = "staff";
 	    }
 	} until(isupper(*str));
-	*str = tolower(*str);
-	ws_made[i] = str;
+	ws_made[i] = strdup(str);
+	ws_made[i][0] = (char) tolower(ws_made[i][0]);
 	know_items[TYP_STICK][i] = FALSE;
 	guess_items[TYP_STICK][i] = NULL;
 	if (i > 0)
@@ -440,10 +634,8 @@ init_materials()
     badcheck("sticks", ws_magic, maxsticks);
 }
 
-badcheck(name, magic, bound)
-char    *name;
-register struct magic_item  *magic;
-register int    bound;
+void
+badcheck(char *name, struct magic_item *magic, int bound)
 {
     register struct magic_item  *end;
 

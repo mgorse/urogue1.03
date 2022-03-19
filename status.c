@@ -23,8 +23,8 @@
  * has_defensive_spell() - has monster cast a defensive spell
  * Any flags added here must also be in player_powers[]
  */
-has_defensive_spell(th)
-struct thing    th;
+bool
+has_defensive_spell(struct thing th)
 {
     if (on(th, HASOXYGEN))
         return (TRUE);

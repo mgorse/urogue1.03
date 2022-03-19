@@ -11,8 +11,9 @@
 */
 
 #include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
 #include "rogue.h"
-#include "death.h"
 
 /* for printing out messages */
 #define CAST_NORMAL 0x000   /* cast normal version */
@@ -25,15 +26,6 @@
 #define MIN_FUMBLE_CHANCE   5
 #define MAX_FUMBLE_CHANCE   95
 
-struct spells {
-    int sp_level;   /* level of casting spell */
-    int sp_which;   /* which scroll or potion */
-    int sp_flags;   /* scroll, blessed, known */
-    int sp_cost;    /* generated in incant()  */
-};
-
-char    *spell_name();
-char    *spell_abrev();
 struct spells   *pick_monster_spell();
 
 /*
@@ -168,9 +160,8 @@ struct spells   player_spells[] = {
 /*
  * Incantation: Cast a spell
  */
-incant(caster, shoot_dir)
-struct thing    *caster;
-coord   shoot_dir;
+void
+incant(struct thing *caster, coord shoot_dir)
 {
     int i;
     struct stats    *curp;
@@ -522,8 +513,7 @@ coord   shoot_dir;
  * spell_name - returns pointer to spell name
  */
 char    *
-spell_name(sp)
-struct spells   *sp;
+spell_name(const struct spells *sp)
 {
     static char spellname[2 * BUFSIZ];
     char    *ret_val;
@@ -545,8 +535,7 @@ struct spells   *sp;
  * spell_abrev - returns pointer to capital letter spell abbreviation
  */
 char    *
-spell_abrev(sp)
-struct spells   *sp;
+spell_abrev(struct spells *sp)
 {
     static char spellname[2 * BUFSIZ];
     char    *ret_val;
@@ -567,9 +556,9 @@ struct spells   *sp;
 /*
  * fumble_spell - he blew it.  Make him pay
  */
-fumble_spell(caster, num_fumbles)
-struct thing    *caster;        /* the fumblee */
-int num_fumbles;        /* high means you fumbled real bad */
+void
+fumble_spell(struct thing    *caster,        /* the fumblee */
+             int num_fumbles)        /* high means you fumbled real bad */
 {
     struct stats    *curp = &(caster->t_stats);
     struct stats    *maxp = &(caster->maxstats);
@@ -648,6 +637,7 @@ int num_fumbles;        /* high means you fumbled real bad */
  * learn_new_spells - go through player_spells and ISKNOW identified potions,
  * scrolls, and sticks
  */
+void
 learn_new_spells()
 {
     struct spells   *sp;
@@ -673,8 +663,7 @@ learn_new_spells()
  * returns pointer to spell in monst_spells
  */
 struct spells   *
-pick_monster_spell(caster)
-struct thing    *caster;
+pick_monster_spell(struct thing *caster)
 {
     struct spells   *sp = NULL;
     struct stats    *curp = &(caster->t_stats);
@@ -750,7 +739,7 @@ struct thing    *caster;
 	    return (sp);
 	if ((rnd(3) == 0) && (sp->sp_flags & ISKNOW)) {
 	    if (sp->sp_which != WS_MISSILE &&
-		DISTANCE(caster->t_dest.y, caster->t_dest.x,
+		DISTANCE(caster->t_pos.y, caster->t_pos.x,
 		hero.y, hero.x) > BOLT_LENGTH)
 		continue;
 	    else
@@ -763,13 +752,14 @@ struct thing    *caster;
 /*
  * sort_spells -    called by qsort()
  */
-sort_spells(sp1, sp2)
-struct spells   *sp1, *sp2;
+int
+sort_spells(const void *a, const void *b)
 {
+    const struct spells *sp1 = a, *sp2 = b;
     int diff = sp1->sp_cost - sp2->sp_cost;
 
     if (diff != 0)
 	return (diff);
     else
-	return (strcmp(spell_name(sp1), spell_name(sp1)));
+	return (strcmp(spell_name(sp1), spell_name(sp2)));
 }

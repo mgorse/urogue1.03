@@ -19,6 +19,8 @@
 */
 
 #include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
 #include "rogue.h"
 
 static int	effective_purse;/* Paladins have a 10% tithe */
@@ -28,6 +30,7 @@ static int	cur_worth;  /* How much the shop item costs */
 /*
  * do_post: Buy and sell things in a trading post
  */
+void
 do_post()
 {
 	bool	bad_letter = FALSE;
@@ -83,9 +86,8 @@ do_post()
 	}
 }
 
-buy_it(itemtype, flags)
-char    itemtype;
-int flags;
+void
+buy_it(char itemtype, int flags)
 {
 	int i;
 	bool	blessed = flags & ISBLESSED;
@@ -379,6 +381,7 @@ buy_more:
 /*
  * sell_it: Sell an item to the trading post
  */
+void
 sell_it()
 {
 	struct object	*obj;
@@ -430,8 +433,8 @@ sell_it()
 /*
  * describe_it: Laud or condemn the object
  */
-describe_it(obj)
-struct object   *obj;
+void
+describe_it(struct object *obj)
 {
 	static char *cursed_d[] = {
 	    "worthless hunk of junk",
@@ -479,6 +482,7 @@ struct object   *obj;
 /*
  * open_market: Retruns TRUE when ok do to transacting
  */
+int
 open_market()
 {
 	int maxtrans = is_wearing(R_ADORNMENT) ? MAXPURCH + 4 : MAXPURCH;
@@ -494,8 +498,8 @@ open_market()
 /*
  * get_worth: Calculate an objects worth in gold
  */
-get_worth(obj)
-struct object   *obj;
+int
+get_worth(struct object *obj)
 {
 	long	worth = 0;
 	int wh = obj->o_which;
@@ -577,6 +581,7 @@ struct object   *obj;
 /*
  * trans_line: Show how many transactions the hero has left
  */
+void
 trans_line()
 {
 	char	buf[2 * LINELEN];

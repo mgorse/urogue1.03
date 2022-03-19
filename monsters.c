@@ -23,17 +23,15 @@
 */
 
 #include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
 #include "rogue.h"
-#include "stepok.h"
-#include "death.h"
 
 /*
  * summon_monster: Summon a monster.
  */
 struct linked_list  *
-summon_monster(type, familiar, print_message)
-short   type;
-bool    familiar, print_message;
+summon_monster(int type, bool familiar, bool print_message)
 {
     struct linked_list  *mp;
     struct thing    *tp;
@@ -41,7 +39,7 @@ bool    familiar, print_message;
 
     if (familiar && !is_wearing(R_WIZARD) && off(player, CANSUMMON)) {
 	msg("Only spellcasters can summon familiars!");
-	return;
+	return NULL;
     }
 
     if (type == 0) {    /* Random monster modified by level */
@@ -131,9 +129,8 @@ bool    familiar, print_message;
  * Pick a monster to show up.  The lower the level, the meaner the monster.
  */
 
-short
-randmonster(wander, grab)
-bool    wander, grab;
+int
+randmonster(bool wander, bool grab)
 {
     int mons_number, cur_level, range, i;
 
@@ -175,11 +172,8 @@ bool    wander, grab;
  * new_monster: Pick a new monster and add it to the list
  */
 
-new_monster(item, type, cp, max_monster)
-struct linked_list  *item;
-short   type;
-coord   *cp;
-bool    max_monster;
+void
+new_monster(struct linked_list *item, int type, coord *cp, bool max_monster)
 {
     struct thing    *tp;
     struct monster  *mp;
@@ -416,7 +410,7 @@ bool    max_monster;
     }
 
     if (is_wearing(R_AGGR)) {
-	runto(cp, &hero);
+        chase_it(cp, &player);
     }
     else {
 	turn_off(*tp, ISRUN);
@@ -440,7 +434,7 @@ bool    max_monster;
 	    }
 
 	/* LOWFRIENDLY monsters might be friendly */
-	i = roll(100);
+	i = roll(1, 100);
 	if (i == 0 || (on(*tp, LOWFRIENDLY) && i < eff_charisma) ||
 	    (on(*tp, MEDFRIENDLY) && i < 3 * eff_charisma) ||
 	    (on(*tp, HIGHFRIENDLY) && i < 5 * eff_charisma)) {
@@ -448,7 +442,7 @@ bool    max_monster;
 	    turn_off(*tp, ISMEAN);
 	}
 
-	i = roll(100);
+	i = roll(1, 100);
 	if (i == 0 || (on(*tp, LOWCAST) && i < eff_intel) ||
 	    (on(*tp, MEDCAST) && i < 3 * eff_intel) ||
 	    (on(*tp, HIGHCAST) && i < 5 * eff_intel)) {
@@ -482,6 +476,7 @@ bool    max_monster;
  * wanderer: A wandering monster has awakened and is headed for the player
  */
 
+void
 wanderer()
 {
     int i, count = 0;
@@ -506,12 +501,11 @@ wanderer()
     item = new_item(sizeof *tp);
     which = randmonster(TRUE, FALSE);
     new_monster(item, which, &cp, FALSE);
-    tp = THINGPTR(item);
-    turn_on(*tp, ISRUN);
-    turn_off(*tp, ISDISGUISE);
-    tp->t_dest = hero;
 
+    tp = THINGPTR(item);
     tp->t_pos = cp;     /* Assign the position to the monster */
+
+    chase_it(&tp->t_pos, &player);
 
     i = rnd(7);
     if (on(*tp, ISSWARM) && i < 5)
@@ -573,8 +567,7 @@ wanderer()
  * what to do when the hero steps next to a monster
  */
 struct linked_list  *
-wake_monster(y, x)
-int y, x;
+wake_monster(int y, int x)
 {
     struct thing    *tp;
     struct linked_list  *it;
@@ -589,9 +582,7 @@ int y, x;
     tp = THINGPTR(it);
     ch = tp->t_type;
     if ((good_monster(*tp)) || on(player, SUMMONING)) {
-	tp->t_dest = hero;
-	turn_on(*tp, ISRUN);
-	turn_off(*tp, ISDISGUISE);
+        chase_it(&tp->t_pos, &player);
 	turn_off(*tp, ISINVIS);
 	turn_off(*tp, CANSURPRISE);
 	return (it);
@@ -615,9 +606,10 @@ int y, x;
 		if ((cur->o_type == GOLD) &&
 		    (roomin(&cur->o_pos) == trp)) {
 		    /* Run to the gold */
-		    tp->t_dest = cur->o_pos;
+                    tp->t_horde = cur;
 		    turn_on(*tp, ISRUN);
 		    turn_off(*tp, ISDISGUISE);
+                    tp->t_ischasing = FALSE;
 
 		    /* Make it worth protecting */
 		    cur->o_count += roll(2, 3) * GOLDCALC;
@@ -641,9 +633,7 @@ int y, x;
 	  )
        )
     {
-	tp->t_dest = hero;
-	turn_on(*tp, ISRUN);
-	turn_off(*tp, ISDISGUISE);
+        chase_it(&tp->t_pos, &player);
     }
 
     /*
@@ -654,7 +644,7 @@ int y, x;
 	if (on(*tp, CANHUH)) {  /* Confusion */
 	    if (on(player, CANREFLECT)) {
 		msg("You reflect the bewildering stare of the %s.", mname);
-		if (save_throw(tp, VS_MAGIC)) {
+		if (save_throw(VS_MAGIC, tp)) {
 		    msg("The %s is confused!", mname);
 		    turn_on(*tp, ISHUH);
 		}
@@ -668,12 +658,12 @@ int y, x;
 	    }
 	    else if (off(player, ISCLEAR)) {
 		if (off(player, ISHUH)) {
-		    fuse(unconfuse, 0, rnd(20) + HUHDURATION, AFTER);
+		    light_fuse(FUSE_UNCONFUSE, 0, rnd(20) + HUHDURATION, AFTER);
 		    msg("The %s's gaze has confused you.", mname);
 		    turn_on(player, ISHUH);
 		}
 		else
-		    lengthen(unconfuse, rnd(20) +
+		    lengthen_fuse(FUSE_UNCONFUSE, rnd(20) +
 			HUHDURATION);
 	    }
 	}
@@ -681,7 +671,7 @@ int y, x;
 	if (on(*tp, CANSNORE)) {    /* Sleep */
 	    if (on(player, CANREFLECT)) {
 		msg("You reflect the lethargic glance of the %s", mname);
-		if (save_throw(tp, VS_PARALYZATION)) {
+		if (save_throw(VS_PARALYZATION, tp)) {
 		    msg("The %s falls asleep!", mname);
 		    tp->t_no_move += SLEEPTIME;
 		}
@@ -703,18 +693,19 @@ int y, x;
 	    turn_off(*tp, CANFRIGHTEN);
 	    if (on(player, CANREFLECT)) {
 		msg("The %s sees its reflection. ", mname);
-		if (save_throw(tp, VS_MAGIC)) {
+		if (save_throw(VS_MAGIC, tp)) {
 		    msg("The %s is terrified by its reflection!", mname);
 		    turn_on(*tp, ISFLEE);
 		}
 	    }
 	    else {
 		if (!save(VS_WAND) && !(on(player, ISFLEE) &&
-		       SAME_POS(player.t_dest,tp->t_pos))) {
+		       player.t_chasee == tp)) {
 		    if ((player.t_ctype != C_PALADIN) &&
 			off(player, SUPERHERO)) {
 			turn_on(player, ISFLEE);
-			player.t_dest = tp->t_pos;
+                        player.t_ischasing = FALSE;
+                        player.t_chasee    = tp;
 			msg("The sight of the %s terrifies you.", mname);
 		    }
 		    else
@@ -728,7 +719,7 @@ int y, x;
 	    turn_off(*tp, LOOKSLOW);
 	    if (on(player, CANREFLECT)) {
 		msg("You reflect the mournful glare of the %s.", mname);
-		if (save_throw(tp, VS_MAGIC)) {
+		if (save_throw(VS_MAGIC, tp)) {
 		    msg("The %s is slowing down!", mname);
 		    turn_on(*tp, ISSLOW);
 		}
@@ -737,18 +728,18 @@ int y, x;
 		msg("You feel run-down for a moment.");
 	    else {
 		if (on(player, ISHASTE)) {  /* Already sped up */
-		    extinguish(nohaste);
-		    nohaste();
+		    extinguish_fuse(FUSE_NOHASTE);
+		    nohaste(NULL);
 		}
 		else {
 		    msg("You feel yourself moving %sslower.",
 		     on(player, ISSLOW) ? "even " : "");
 		    if (on(player, ISSLOW))
-			lengthen(noslow, rnd(4) + 4);
+			lengthen_fuse(FUSE_NOSLOW, rnd(4) + 4);
 		    else {
 			turn_on(player, ISSLOW);
 			player.t_turn = TRUE;
-			fuse(noslow, 0, rnd(4) + 4, AFTER);
+			light_fuse(FUSE_NOSLOW, 0, rnd(4) + 4, AFTER);
 		    }
 		}
 	    }
@@ -758,7 +749,7 @@ int y, x;
 	    turn_off(*tp, CANBLIND);
 	    if (on(player, CANREFLECT)) {
 		msg("You reflect the blinding stare of the %s.", mname);
-		if (save_throw(tp, VS_WAND)) {
+		if (save_throw(VS_WAND, tp)) {
 		    msg("The %s is blinded!", mname);
 		    turn_on(*tp, ISHUH);
 		}
@@ -769,7 +760,7 @@ int y, x;
 		else {
 		    msg("The gaze of the %s blinds you.", mname);
 		    turn_on(player, ISBLIND);
-		    fuse(sight, 0, rnd(30) + 20, AFTER);
+		    light_fuse(FUSE_SIGHT, 0, rnd(30) + 20, AFTER);
 		    look(FALSE);
 		}
 	}
@@ -778,7 +769,7 @@ int y, x;
 	    turn_off(*tp, LOOKSTONE);
 	    if (on(player, CANREFLECT)) {
 		msg("You reflect the flinty look of the %s.", mname);
-		if (save_throw(tp, VS_PETRIFICATION)) {
+		if (save_throw(VS_PETRIFICATION, tp)) {
 		    msg("The %s suddenly stiffens", mname);
 		    tp->t_no_move += STONETIME;
 		}
@@ -836,8 +827,8 @@ int y, x;
 /*
  * genocide - wipe out hated monsters flags:    ISBLESSED, ISCURSED
  */
-genocide(flags)
-int flags;
+void
+genocide(int flags)
 {
     struct linked_list  *ip;
     struct thing    *mp;
@@ -850,8 +841,6 @@ int flags;
     while ((which_monst = get_monster_number("genocide")) == 0);
 
     if (cursed) {       /* oops... */
-	extern int  throne_monster;
-
 	throne_monster = which_monst;   /* hack, kludge */
 	new_level(THRONE);
 	msg("What's this I hear about you trying to wipe me out?");
@@ -887,8 +876,7 @@ int flags;
  */
 
 void
-id_monst(monster)
-char    monster;
+id_monst(char monster)
 {
     int i;
 
@@ -902,8 +890,8 @@ char    monster;
 /*
  * Check_residue takes care of any effect of the monster
  */
-check_residue(tp)
-struct thing    *tp;
+void
+check_residue(struct thing *tp)
 {
 
     /*
@@ -917,13 +905,12 @@ struct thing    *tp;
 	raise_level();
 
     /* If frightened of this monster, stop */
-    if (on(player, ISFLEE) &&
-	SAME_POS(player.t_dest,tp->t_pos))
+    if (on(player, ISFLEE) && (player.t_chasee==tp))
 	turn_off(player, ISFLEE);
 
     /* If monster was suffocating player, stop it */
     if (on(*tp, DIDSUFFOCATE))
-	extinguish(suffocate);
+	extinguish_fuse(FUSE_SUFFOCATE);
 
     /* If something with fire, may darken */
     if (on(*tp, HASFIRE)) {
@@ -941,8 +928,8 @@ struct thing    *tp;
  * purchase something.
  */
 #define SELL_ITEMS 10       /* How many things 'q' might carry */
-sell(tp)
-struct thing    *tp;
+void
+sell(struct thing *tp)
 {
     struct linked_list  *item;
     int i, j, min_worth, nitems, goods, chance, which_item, w;
@@ -1241,9 +1228,8 @@ struct thing    *tp;
     }
 }
 
-carried_weapon(owner, weapon)
-struct thing    *owner;
-struct object   *weapon;
+void
+carried_weapon(struct thing *owner, struct object *weapon)
 {
     weapon->o_hplus = (rnd(4) < 3) ? 0 : (rnd(3) + 1) * ((rnd(3) < 2) ? 1 :
 	 -1);

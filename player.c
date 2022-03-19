@@ -15,6 +15,7 @@
 */
 
 #include <ctype.h>
+#include <stdlib.h>
 #include "rogue.h"
 
 /*
@@ -26,11 +27,12 @@
  * 61-90 A bad deity answers, but with good results
  * 91-99 You were better off before
  */
+void
 prayer()
 {
     int chance, i, times;
     char    ch, num_str[20];
-    struct linked_list  *item, *f_mons_a();
+    struct linked_list  *item;
     struct thing    *tp;
     bool    got_one = FALSE;
     bool    is_godly;
@@ -202,6 +204,7 @@ prayer()
  * gsense: Sense gold returns TRUE if gold was detected
  */
 
+int
 gsense()
 {
     if (lvl_obj != NULL) {
@@ -223,7 +226,7 @@ gsense()
 	    return (TRUE);
 	}
     }
-    nothing_message();
+    nothing_message(ISNORMAL);
     return (FALSE);
 }
 
@@ -233,8 +236,7 @@ gsense()
  */
 
 bool
-is_stealth(tp)
-struct thing    *tp;
+is_stealth(struct thing *tp)
 {
     return (rnd(25) < tp->t_stats.s_dext ||
 	(tp == &player && is_wearing(R_STEALTH)));
@@ -244,6 +246,7 @@ struct thing    *tp;
  * steal: Steal in direction given in delta
  */
 
+void
 steal()
 {
     struct linked_list  *item;
@@ -277,7 +280,7 @@ steal()
     else
 	thief_bonus = -50;
     if (rnd(50) >= 3 * pstats.s_dext + thief_bonus) {
-	runto(&new_pos, &hero);
+        chase_it(&new_pos, &player);
 	turn_off(*tp, ISFRIENDLY);
 	notice = "is";
     }
@@ -336,6 +339,7 @@ steal()
  * affect: cleric affecting undead
  */
 
+void
 affect()
 {
     struct linked_list  *item;
@@ -403,7 +407,7 @@ affect()
 	/* If monster was suffocating, stop it */
 	if (on(*tp, DIDSUFFOCATE)) {
 	    turn_off(*tp, DIDSUFFOCATE);
-	    extinguish(suffocate);
+	    extinguish_fuse(FUSE_SUFFOCATE);
 	}
 
 	/* If monster held us, stop it */
@@ -416,13 +420,14 @@ affect()
     msg("The %s momentarily recoils from your holy symbol.", mname);
 annoy:
     if (off(*tp, WASTURNED))
-	runto(&new_pos, &hero);
+        chase_it(&new_pos, &player);
 }
 
 /*
  * undead_sense: cleric or paladin finding the ungodly
  */
 
+void
 undead_sense()
 {
     struct linked_list  *item;

@@ -23,16 +23,15 @@
 */
 
 #include <ctype.h>
+#include <string.h>
 #include "rogue.h"
 
 /*
  * missile: Fire a missile in a given direction
  */
 
-missile(ydelta, xdelta, item, tp)
-int ydelta, xdelta;
-struct linked_list  *item;
-struct thing    *tp;
+void
+missile(int ydelta, int xdelta, struct linked_list *item, struct thing *tp)
 {
     struct object   *obj;
     struct linked_list  *nitem;
@@ -122,10 +121,8 @@ struct thing    *tp;
  * do the actual motion on the screen done by an object traveling across the
  * room
  */
-do_motion(obj, ydelta, xdelta, tp)
-struct object   *obj;
-int ydelta, xdelta;
-struct thing    *tp;
+void
+do_motion(struct object *obj, int ydelta, int xdelta, struct thing *tp)
 {
 
     /*
@@ -173,10 +170,8 @@ struct thing    *tp;
  * fall: Drop an item someplace around here.
  */
 
-fall(tp, item, pr)
-struct linked_list  *item;
-struct thing    *tp;
-bool    pr;
+void
+fall(struct thing *tp, struct linked_list *item, bool pr)
 {
     struct object   *obj;
     struct room *rp;
@@ -230,9 +225,8 @@ bool    pr;
  * init_weapon: Set up the initial goodies for a weapon
  */
 
-init_weapon(weap, type)
-struct object   *weap;
-char    type;
+void
+init_weapon(struct object *weap, int type)
 {
     struct init_weps    *iwp = &weaps[type];
 
@@ -253,10 +247,8 @@ char    type;
  * hit_monster - does the missile hit the target
  */
 
-hit_monster(y, x, weapon, thrower)
-int y, x;
-struct object   *weapon;
-struct thing    *thrower;
+int
+hit_monster(int y, int x, struct object *weapon, struct thing *thrower)
 {
     struct linked_list  *mon;
     static coord    target;
@@ -288,27 +280,49 @@ struct thing    *thrower;
  * num: Figure out the plus number for armor/weapons
  */
 
-char    *num(n1, n2)
-int n1, n2;
+char *
+num(int n1, int n2, char *buf)
 {
-    static char numbuf[2 * LINELEN];
+    if (buf == NULL)
+        return("UltraRogue Error #104");
 
     if (n1 == 0 && n2 == 0)
-	return "+0";
+    {
+        strcpy(buf,"+0");
+        return(buf);
+    }
 
     if (n2 == 0)
-	sprintf(numbuf, "%s%d", n1 < 0 ? "" : "+", n1);
+        sprintf(buf, "%s%d", n1 < 0 ? "" : "+", n1);
     else
-	sprintf(numbuf, "%s%d, %s%d", n1 < 0 ? "" : "+",
-	    n1, n2 < 0 ? "" : "+", n2);
+        sprintf(buf, "%s%d, %s%d", n1 < 0 ? "" : "+",
+            n1, n2 < 0 ? "" : "+", n2);
 
-    return (numbuf);
+    return(buf);
 }
+
 
 /*
  * wield: Pull out a certain weapon
  */
 
+int
+shoot_ok(int ch)
+{
+    switch(ch)
+    {
+        case ' ':
+        case '|':
+        case '-':
+        case SECRETDOOR:
+            return(FALSE);
+
+        default:
+            return(!isalpha(ch));
+    }
+}
+
+void
 wield()
 {
     struct linked_list  *item;
@@ -340,9 +354,8 @@ wield()
 /*
  * pick a random position around the give (y, x) coordinates
  */
-fallpos(pos, newpos, passages)
-coord   *pos, *newpos;
-bool    passages;
+int
+fallpos(coord *pos, coord *newpos, bool passages)
 {
     int y, x, cnt, ch;
 
@@ -382,10 +395,7 @@ bool    passages;
  */
 
 bool
-wield_ok(wieldee, obj, print_message)
-struct thing    *wieldee;
-struct object   *obj;
-bool    print_message;
+wield_ok(struct thing *wieldee, struct object *obj, bool print_message)
 {
     int which = obj->o_which;
     bool    ret_val = TRUE;

@@ -20,19 +20,17 @@
     All rights reserved.
     
     See the file LICENSE.TXT for full copyright and licensing information.*/
-*/
 
 #include "rogue.h"
-#include "stepok.h"
-#include "death.h"
 
 /*
  * doctor: A healing daemon that restors spell and hit points after rest
  */
 
-doctor(tp)
-struct thing    *tp;
+void
+doctor(daemon_arg *who)
 {
+    struct thing *tp = who->thingptr;
     int ohp;    /* turn off ISFLEE? */
     short   turns_quiet, new_points;
     struct stats    *curp;  /* current stats pointer */
@@ -124,8 +122,8 @@ struct thing    *tp;
  * doctor_spell_points: A healing daemon that restors spell points
  */
 
-doctor_spell_points(tp)
-struct thing    *tp;
+void
+doctor_spell_points(struct thing *tp)
 {
     short   turns_quiet, new_points;
     struct stats    *curp;  /* current stats pointer */
@@ -191,25 +189,30 @@ struct thing    *tp;
  * Swander: Called when it is time to start rolling for wandering monsters
  */
 
-swander()
+fuse
+swander(fuse_arg *arg)
 {
-    daemon(rollwand, 0, BEFORE);
+    NOOP(arg);
+
+    start_daemon(DAEMON_ROLLWAND, 0, BEFORE);
 }
 
 /*
  * rollwand: Called to roll to see if a wandering monster starts up
  */
 
-rollwand()
+daemon
+rollwand(daemon_arg *arg)
 {
+    NOOP(arg);
     static int  between = 0;
 
     if (++between >= 4) {   /* Thieves (only) may not waken a monster */
 	if ((rnd(6) == 0) &&
 	(player.t_ctype != C_THIEF || (rnd(30) >= pstats.s_dext))) {
 	    wanderer();
-	    kill_daemon(rollwand);
-	    fuse(swander, 0, WANDERTIME, BEFORE);
+	    kill_daemon(DAEMON_ROLLWAND);
+	    light_fuse(FUSE_SWANDER, 0, WANDERTIME, BEFORE);
 	}
 	between = 0;
     }
@@ -219,8 +222,11 @@ rollwand()
  * unconfuse: Release the poor player from his confusion
  */
 
-unconfuse()
+fuse
+unconfuse(fuse_arg *arg)
 {
+    NOOP(arg);
+
     turn_off(player, ISHUH);
     msg("You feel less confused now.");
 }
@@ -230,8 +236,11 @@ unconfuse()
  * unscent: turn of extra smelling ability
  */
 
-unscent()
+fuse
+unscent(fuse_arg *arg)
 {
+    NOOP(arg);
+
     turn_off(player, CANSCENT);
     msg("The smell of monsters goes away.");
 }
@@ -241,8 +250,11 @@ unscent()
  * scent: give back the players sense of smell
  */
 
-scent()
+fuse
+scent(fuse_arg *arg)
 {
+    NOOP(arg);
+
     turn_off(player, ISUNSMELL);
     msg("You begin to smell the damp dungeon air again.");
 }
@@ -252,8 +264,11 @@ scent()
  * unhear: player doesn't have extra hearing any more
  */
 
-unhear()
+fuse
+unhear(fuse_arg *arg)
 {
+    NOOP(arg);
+
     turn_off(player, CANHEAR);
     msg("The sounds of monsters fades away.");
 }
@@ -263,8 +278,11 @@ unhear()
  * hear: return the players sense of hearing
  */
 
-hear()
+fuse
+hear(fuse_arg *arg)
 {
+    NOOP(arg);
+
     turn_off(player, ISDEAF);
     msg("You can hear again.");
 }
@@ -274,8 +292,11 @@ hear()
  * unsee: He lost his see invisible power
  */
 
-unsee()
+fuse
+unsee(fuse_arg *arg)
 {
+    NOOP(arg);
+
     if (!is_wearing(R_SEEINVIS)) {
 	turn_off(player, CANSEE);
 	msg("The tingling feeling leaves your eyes.");
@@ -287,8 +308,11 @@ unsee()
  * unstink: Remove to-hit handicap from player
  */
 
-unstink()
+fuse
+unstink(fuse_arg *arg)
 {
+    NOOP(arg);
+
     turn_off(player, HASSTINK);
 }
 
@@ -296,8 +320,11 @@ unstink()
  * unclrhead: Player is no longer immune to confusion
  */
 
-unclrhead()
+fuse
+unclrhead(fuse_arg *arg)
 {
+    NOOP(arg);
+
     turn_off(player, ISCLEAR);
     msg("The blue aura about your head fades away.");
 }
@@ -306,8 +333,11 @@ unclrhead()
  * unphase: Player can no longer walk through walls
  */
 
-unphase()
+fuse
+unphase(fuse_arg *arg)
 {
+    NOOP(arg);
+
     turn_off(player, CANINWALL);
     msg("Your dizzy feeling leaves you.");
     if (!step_ok(hero.y, hero.x, NOMONST, &player))
@@ -318,10 +348,13 @@ unphase()
  * sight: He gets his sight back
  */
 
-sight()
+fuse
+sight(fuse_arg *arg)
 {
+    NOOP(arg);
+
     if (on(player, ISBLIND)) {
-	extinguish(sight);
+	extinguish_fuse(FUSE_SIGHT);
 	turn_off(player, ISBLIND);
 	light(&hero);
 	msg("The veil of darkness lifts.");
@@ -332,8 +365,11 @@ sight()
  * res_strength: Restore player's strength
  */
 
-res_strength()
+fuse
+res_strength(fuse_arg *arg)
 {
+    NOOP(arg);
+
     if (lost_str) {
 	chg_str(lost_str, FALSE, FALSE);
 	lost_str = 0;
@@ -349,8 +385,11 @@ res_strength()
  * nohaste: End the hasting
  */
 
-nohaste()
+fuse
+nohaste(fuse_arg *arg)
 {
+    NOOP(arg);
+
     turn_off(player, ISHASTE);
     msg("You feel yourself slowing down.");
 }
@@ -359,8 +398,11 @@ nohaste()
  * noslow: End the slowing
  */
 
-noslow()
+fuse
+noslow(fuse_arg *arg)
 {
+    NOOP(arg);
+
     turn_off(player, ISSLOW);
     msg("You feel yourself speeding up.");
 }
@@ -369,15 +411,90 @@ noslow()
  * suffocate: If this gets called, the player has suffocated
  */
 
-suffocate()
+fuse
+suffocate(fuse_arg *arg)
 {
+    NOOP(arg);
+
     death(D_SUFFOCATION);
+}
+
+/*
+ * runners: Make all the running monsters move. with monsters now fighting
+ * each other, this routine have been enhanced and may need more work yet
+ */
+
+daemon
+runners(daemon_arg *arg)
+{
+    struct linked_list  *item;
+    struct thing    *tp;
+    daemon_arg targ;
+
+
+    for (item = mlist; item != NULL; item = next_mons)
+    {
+	curr_mons = item;
+	next_mons = next(curr_mons);
+    tp = THINGPTR(item);
+
+    if (on(*tp, ISHELD) && rnd(tp->t_stats.s_str +
+	    tp->t_stats.s_lvl) > 10 + rnd(50))
+	{
+	    turn_off(*tp, ISHELD);
+	    turn_off(*tp, ISDISGUISE);
+	    turn_on(*tp, ISRUN);
+            tp->t_ischasing = TRUE;
+            tp->t_chasee = &player;
+            tp->t_horde  = NULL;
+
+	    if (tp->t_stats.s_hpt < rnd(tp->maxstats.s_hpt))
+		turn_on(*tp, ISFLEE);
+
+	    if (cansee(tp->t_pos.y, tp->t_pos.x))
+		msg("The %s breaks free!", monsters[tp->t_index].m_name);
+	}
+
+    if (off(*tp, ISHELD) && on(*tp, ISRUN))
+	{
+	    bool flee = FALSE;
+	    flee = on(*tp, ISFLEE) ||
+                     ( (tp->t_chasee == &player) &&
+                         on(player, ISINWALL) &&
+                         off(*tp, CANINWALL) && off(*tp, ISFAMILIAR) );
+
+	    if (off(*tp, ISSLOW) || tp->t_turn)
+	    {
+                targ.thingptr = tp;
+                doctor(&targ);
+		do_chase(tp, flee);
+	    }
+
+	    if (curr_mons && (on(*tp, ISHASTE) ||
+		((on(*tp, CANFLY) || on(*tp, ISFAST)) &&
+	    DISTANCE(hero.y, hero.x, tp->t_pos.y, tp->t_pos.x) >= 4)))
+	    {
+        targ.thingptr = tp;
+        doctor(&targ);
+	do_chase(tp, flee);
+	}
+
+	    if (curr_mons)
+	    {
+	tp->t_turn ^= TRUE;
+	tp->t_wasshot ^= FALSE; /* Not shot anymore */
+	    }
+
+	}
+    }
+    curr_mons = next_mons = NULL;
 }
 
 /*
  * digest the hero's food
  */
-stomach()
+daemon
+stomach(daemon_arg *arg)
 {
     int oldfood, old_hunger;
     int amount;
@@ -440,8 +557,11 @@ stomach()
 /*
  * daemon for curing the diseased
  */
-cure_disease()
+fuse
+cure_disease(fuse_arg *arg)
 {
+    NOOP(arg);
+
     turn_off(player, HASDISEASE);
     if (off(player, HASINFEST))
 	msg(terse ? "You feel yourself improving."
@@ -451,8 +571,11 @@ cure_disease()
 /*
  * daemon for adding back dexterity
  */
-un_itch()
+fuse
+un_itch(fuse_arg *arg)
 {
+    NOOP(arg);
+
     if (lost_dext) {
 	chg_dext(lost_dext, FALSE, FALSE);
 	lost_dext = 0;
@@ -463,8 +586,11 @@ un_itch()
 /*
  * appear: Become visible again
  */
-appear()
+fuse
+appear(fuse_arg *arg)
 {
+    NOOP(arg);
+
     turn_off(player, ISINVIS);
     PLAYER = VPLAYER;
     msg("The tingling feeling leaves your body.");
@@ -474,8 +600,11 @@ appear()
 /*
  * unelectrify: stop shooting off sparks
  */
-unelectrify()
+fuse
+unelectrify(fuse_arg *arg)
 {
+    NOOP(arg);
+
     turn_off(player, ISELECTRIC);
     msg("The sparks and violet glow from your body fade away.");
     light(&hero);
@@ -484,8 +613,11 @@ unelectrify()
 /*
  * unshero: super heroism wears off, now do nasty effects
  */
-unshero()
+fuse
+unshero(fuse_arg *arg)
 {
+    NOOP(arg);
+
     msg("Your feeling of invulnerability goes away.");
     turn_off(player, SUPERHERO);
     chg_str(-11, FALSE, FALSE);
@@ -498,8 +630,11 @@ unshero()
 /*
  * unbhero: blessed super heroism wears off, no bad effects
  */
-unbhero()
+fuse
+unbhero(fuse_arg *arg)
 {
+    NOOP(arg);
+
     msg("Your feeling of invincibility goes away.");
     turn_off(player, SUPERHERO);
     chg_str(-10, FALSE, FALSE);
@@ -509,8 +644,11 @@ unbhero()
 /*
  * undisguise: player stops looking like a monster
  */
-undisguise()
+fuse
+undisguise(fuse_arg *arg)
 {
+    NOOP(arg);
+
     msg("Your skin feels itchy for a moment.");
     turn_off(player, ISDISGUISE);
     PLAYER = VPLAYER;
@@ -521,9 +659,10 @@ undisguise()
 /*
  * Unsummon a monster
  */
-unsummon(monst)
-int monst;
+void
+unsummon(fuse_arg *monny)
 {
+    struct linked_list *monst = monny->ll;
     struct linked_list  *sum_monst = (struct linked_list *) monst;
     struct thing    *tp = THINGPTR(sum_monst);
     char    *mname = monsters[tp->t_index].m_name;
@@ -540,16 +679,22 @@ int monst;
 /*
  * Ungaze: Turn off gaze reflection
  */
-ungaze()
+fuse
+ungaze(fuse_arg *arg)
 {
+    NOOP(arg);
+
     msg("The shiny particles swirl to the floor.");
     turn_off(player, CANREFLECT);
 }
 
 /*
  * shero: restore lost abilities from cursed potion of shero */
-shero()
+fuse
+shero(fuse_arg *arg)
 {
+    NOOP(arg);
+
     msg("You feel normal again.");
     chg_str(2, FALSE, TRUE);
     chg_dext(2, FALSE, TRUE);
@@ -560,8 +705,11 @@ shero()
  * uncold: He lost his cold resistance power
  */
 
-uncold()
+fuse
+uncold(fuse_arg *arg)
 {
+    NOOP(arg);
+
     turn_off(player, NOCOLD);
     if (!is_wearing(R_COLDRESIST))
 	msg("You feel a slight chill in the air.");
@@ -571,8 +719,11 @@ uncold()
  * unhot: He lost his fire resistance power
  */
 
-unhot()
+fuse
+unhot(fuse_arg *arg)
 {
+    NOOP(arg);
+
     turn_off(player, NOFIRE);
     if (!is_wearing(R_FIRERESIST))
 	msg("You feel a flush of warmth.");
@@ -582,8 +733,11 @@ unhot()
  * unfly: He stopped flying
  */
 
-unfly()
+fuse
+unfly(fuse_arg *arg)
 {
+    NOOP(arg);
+
     turn_off(player, CANFLY);
     if (!is_wearing(R_LEVITATION))
 	msg("You float gently to the ground.");
@@ -593,8 +747,11 @@ unfly()
  * unbreathe: He started needing oxygen
  */
 
-unbreathe()
+fuse
+unbreathe(fuse_arg *arg)
 {
+    NOOP(arg);
+
     turn_off(player, HASOXYGEN);
     if (!is_wearing(R_BREATHE))
 	msg("You start huffing and puffing.");
@@ -604,8 +761,11 @@ unbreathe()
  * unregen: He stops being regenerative
  */
 
-unregen()
+fuse
+unregen(fuse_arg *arg)
 {
+    NOOP(arg);
+
     turn_off(player, ISREGEN);
     if (!is_wearing(R_REGEN))
 	msg("Your metabolism slows down.");
@@ -615,8 +775,11 @@ unregen()
  * unsupereat: He stops being excessively hungry
  */
 
-unsupereat()
+fuse
+unsupereat(fuse_arg *arg)
 {
+    NOOP(arg);
+
     turn_off(player, SUPEREAT);
     msg("You stop feeling so hungry.");
 }
@@ -625,13 +788,14 @@ unsupereat()
  * unshield: He stops having his AC helped by magic
  */
 
-unshield()
+fuse
+unshield(fuse_arg *arg)
 {
-    extern int  shield_ac;
+    NOOP(arg);
 
     turn_off(player, HASSHIELD);
-    pstats.s_arm -= shield_ac;
-    shield_ac = 0;
+    pstats.s_arm -= pstats.s_acmod;
+    pstats.s_acmod = 0;
     msg("Your skin feels normal.");
 }
 
@@ -639,8 +803,11 @@ unshield()
  * unmshield: He stops ignoring thrown weapons
  */
 
-unmshield()
+fuse
+unmshield(fuse_arg *arg)
 {
+    NOOP(arg);
+
     turn_off(player, HASMSHIELD);
     msg("The fog dissapates.");
 }
@@ -649,10 +816,49 @@ unmshield()
  * untrue: He lost his true sight power
  */
 
-untruesee()
+fuse
+untruesee(fuse_arg *arg)
 {
+    NOOP(arg);
+
     if (!is_wearing(R_TRUESEE)) {
 	turn_off(player, CANTRUESEE);
 	msg("Your sensory perceptions return to normal.");
     }
 }
+
+/*
+ * whgtchk: See if the hero can carry his pack
+ */
+
+fuse
+wghtchk(fuse_arg *arg)
+{
+	int dropchk, err = TRUE;
+	char	ch;
+	NOOP(arg);
+
+	inwhgt = TRUE;
+	if (pstats.s_pack > pstats.s_carry) {
+	    ch = mvwinch(stdscr, hero.y, hero.x);
+	    if ((ch != FLOOR && ch != PASSAGE)) {
+		extinguish_fuse(FUSE_WGHTCHK);
+		light_fuse(FUSE_WGHTCHK, (void *)TRUE, 1, AFTER);
+		inwhgt = FALSE;
+		return;
+	    }
+	    extinguish_fuse(FUSE_WGHTCHK);
+	    msg("Your pack is too heavy for you.");
+	    do {
+		dropchk = drop((struct linked_list *) NULL);
+		if (dropchk == FALSE) {
+		    mpos = 0;
+		    msg("You must drop something.");
+		}
+		if (dropchk == TRUE)
+		    err = FALSE;
+	    } while (err);
+	}
+	inwhgt = FALSE;
+}
+

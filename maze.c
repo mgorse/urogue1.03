@@ -18,6 +18,7 @@
     See the file LICENSE.TXT for full copyright and licensing information.
 */
 
+#include <stdlib.h>
 #include "rogue.h"
 
 struct cell {
@@ -27,7 +28,7 @@ struct cell {
 struct bordercells {
 	char	num_pos;    /* number of frontier cells next to you */
 	struct cell conn[4];/* the y,x position of above cell */
-}	border;
+}	mborder;
 
 char    *frontier, *bits;
 char    *moffset(), *foffset();
@@ -36,6 +37,7 @@ int lines, cols;
 /*
  * domaze: Draw the maze on this level.
  */
+void
 do_maze()
 {
 	int i, least;
@@ -62,7 +64,7 @@ do_maze()
 	/*
 	 * add some gold to make it worth looking for
 	 */
-	item = spec_item(GOLD, NULL, NULL, NULL);
+	item = spec_item(GOLD, 0, 0, 0);
 	obj = OBJPTR(item);
 	obj->o_count *= (rnd(10) + 1);	/* add in one large hunk */
 	rnd_pos(rp, &tp);
@@ -72,7 +74,7 @@ do_maze()
 	/*
 	 * add in some food to make sure he has enough
 	 */
-	item = spec_item(FOOD, NULL, NULL, NULL);
+	item = spec_item(FOOD, 0, 0, 0);
 	obj = OBJPTR(item);
 	rnd_pos(rp, &tp);
 	obj->o_pos = tp;
@@ -107,7 +109,7 @@ do_maze()
 
 	    /* If it carries gold, give it some */
 	    if (on(*mp, CARRYGOLD)) {
-		item = spec_item(GOLD, NULL, NULL, NULL);
+		item = spec_item(GOLD, 0, 0, 0);
 		obj = OBJPTR(item);
 		obj->o_count = GOLDCALC + GOLDCALC + GOLDCALC;
 		obj->o_pos = mp->t_pos;
@@ -120,6 +122,7 @@ do_maze()
 /*
  * draw_maze: Generate and draw the maze on the screen
  */
+void
 draw_maze()
 {
 	int i, j, more;
@@ -156,8 +159,7 @@ draw_maze()
  * moffset: Calculate memory address for bits
  */
 char    *
-moffset(y, x)
-int y, x;
+moffset(int y, int x)
 {
 
 	return (bits + (y * (COLS - 1)) + x);
@@ -167,8 +169,7 @@ int y, x;
  * foffset: Calculate memory address for frontier
  */
 char    *
-foffset(y, x)
-int y, x;
+foffset(int y, int x)
 {
 
 	return (frontier + (y * cols) + x);
@@ -177,49 +178,49 @@ int y, x;
 /*
  * findcells: Figure out cells to open up
  */
-findcells(y, x)
-int x, y;
+int
+findcells(int y, int x)
 {
 	int rtpos, i;
 
 	*foffset(y, x) = FALSE;
-	border.num_pos = 0;
+	mborder.num_pos = 0;
 	if (y < lines - 1) {	/* look below */
 	    if (*foffset(y + 1, x)) {
-		border.conn[border.num_pos].y_pos = y + 1;
-		border.conn[border.num_pos].x_pos = x;
-		border.num_pos += 1;
+		mborder.conn[mborder.num_pos].y_pos = y + 1;
+		mborder.conn[mborder.num_pos].x_pos = x;
+		mborder.num_pos += 1;
 	    }
 	}
 	if (y > 0) {	    /* look above */
 	    if (*foffset(y - 1, x)) {
-		border.conn[border.num_pos].y_pos = y - 1;
-		border.conn[border.num_pos].x_pos = x;
-		border.num_pos += 1;
+		mborder.conn[mborder.num_pos].y_pos = y - 1;
+		mborder.conn[mborder.num_pos].x_pos = x;
+		mborder.num_pos += 1;
 
 	    }
 	}
 	if (x < cols - 1) { /* look right */
 	    if (*foffset(y, x + 1)) {
-		border.conn[border.num_pos].y_pos = y;
-		border.conn[border.num_pos].x_pos = x + 1;
-		border.num_pos += 1;
+		mborder.conn[mborder.num_pos].y_pos = y;
+		mborder.conn[mborder.num_pos].x_pos = x + 1;
+		mborder.num_pos += 1;
 	    }
 	}
 	if (x > 0) {	    /* look left */
 	    if (*foffset(y, x - 1)) {
-		border.conn[border.num_pos].y_pos = y;
-		border.conn[border.num_pos].x_pos = x - 1;
-		border.num_pos += 1;
+		mborder.conn[mborder.num_pos].y_pos = y;
+		mborder.conn[mborder.num_pos].x_pos = x - 1;
+		mborder.num_pos += 1;
 
 	    }
 	}
-	if (border.num_pos == 0)/* no neighbors available */
+	if (mborder.num_pos == 0)/* no neighbors available */
 	    return 0;
 	else {
-	    i = rnd(border.num_pos);
-	    rtpos = border.num_pos - 1;
-	    rmwall(border.conn[i].y_pos, border.conn[i].x_pos, y, x);
+	    i = rnd(mborder.num_pos);
+	    rtpos = mborder.num_pos - 1;
+	    rmwall(mborder.conn[i].y_pos, mborder.conn[i].x_pos, y, x);
 	    return rtpos;
 	}
 }
@@ -227,8 +228,8 @@ int x, y;
 /*
  * rmwall: Removes appropriate walls from the maze
  */
-rmwall(newy, newx, oldy, oldx)
-int newy, newx, oldy, oldx;
+void
+rmwall(int newy, int newx, int oldy, int oldx)
 {
 	int xdif, ydif;
 
@@ -243,6 +244,7 @@ int newy, newx, oldy, oldx;
 /*
  * crankout: Does actual drawing of maze to window
  */
+void
 crankout()
 {
 	int x, y;

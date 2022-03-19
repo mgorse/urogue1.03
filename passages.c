@@ -22,6 +22,7 @@
     See the file LICENSE.TXT for full copyright and licensing information.
 */
 
+#include <stdlib.h>
 #include "rogue.h"
 
 #define cmov(xy) move((xy).y, (xy).x)
@@ -30,17 +31,13 @@
  * do_passages: Draw all the passages on a level.
  */
 
+void
 do_passages()
 {
-    struct rdes *r1, *r2;
+    struct rdes *r1, *r2 = NULL;
     int i, j;
     int roomcount;
-    static struct rdes {
-	bool    conn[MAXROOMS]; /* possible to connect to room i? */
-	bool    isconn[MAXROOMS];   /* connection been made to
-			 * room i? */
-	bool    ingraph;/* this room in graph already? */
-    }   rdes[MAXROOMS] = {
+	static struct rdes rdes[MAXROOMS] = {
 	{{ 0, 1, 0, 1, 0, 0, 0, 0, 0},
 	 { 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0},
 	{{ 1, 0, 1, 0, 1, 0, 0, 0, 0},
@@ -140,8 +137,8 @@ do_passages()
  * conn: Draw a corridor from a room in a certain direction.
  */
 
-conn(r1, r2)
-int r1, r2;
+void
+conn(int r1, int r2)
 {
     struct room *rpf, *rpt;
     char    rmt;
@@ -274,9 +271,8 @@ int r1, r2;
  * array of the room.
  */
 
-door(rm, cp)
-struct room *rm;
-coord   *cp;
+void
+door(struct room *rm, coord *cp)
 {
     cmov(*cp);
     addch(rnd(10) < level - 1 && rnd(100) < 20 ? SECRETDOOR : DOOR);

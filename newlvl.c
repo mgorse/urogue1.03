@@ -24,8 +24,19 @@
 
 #include "rogue.h"
 
-new_level(ltype)
-LEVTYPE ltype;          /* designates type of level to create */
+int
+test_on (struct thing *th, int flag)
+{
+  int flagindex = (flag >> FLAGSHIFT) & FLAGINDEX;
+  int val = flag << 4;
+  return th->t_flags[flagindex] & val;
+}
+/*
+ * new_level:
+ * ltype: designates type of level to create
+ */
+void
+new_level(LEVTYPE ltype)
 {
     int rm, i, cnt;
     struct linked_list  *item, *nitem;
@@ -37,7 +48,7 @@ LEVTYPE ltype;          /* designates type of level to create */
     /* Start player off right */
     turn_off(player, ISHELD);
     turn_off(player, ISFLEE);
-    extinguish(suffocate);
+    extinguish_fuse(FUSE_SUFFOCATE);
     hold_count = 0;
     trap_tries = 0;
     no_food++;
@@ -56,7 +67,7 @@ LEVTYPE ltype;          /* designates type of level to create */
 	fam_ptr = NULL; /* just in case */
     }
     for (i = 1; i <= mons_summoned; i++)
-	extinguish(unsummon);
+	extinguish_fuse(FUSE_UNSUMMON);
     mons_summoned = 0;
 
     for (item = mlist; item != NULL; item = nitem) {
@@ -210,6 +221,7 @@ LEVTYPE ltype;          /* designates type of level to create */
 	    if (rnd(3) == 0)
 		turn_off(player, BLESSFOOD);
 	}
+if (on(player, BLESSMAGIC)) {printf("hi: %d %d\n", player.t_flags[3], test_on(&player, BLESSMAGIC));; getch();}
 	if (player.t_ctype == C_MAGICIAN ||
 	    player.t_ctype == C_ILLUSION ||
 	    on(player, BLESSMAGIC) && rnd(5) == 0) {
@@ -240,7 +252,8 @@ LEVTYPE ltype;          /* designates type of level to create */
 	    if (on(*tp, ISGREED)) {
 		turn_on(*tp, ISRUN);
 		turn_on(*tp, ISMEAN);
-		tp->t_dest = hero;
+                tp->t_ischasing = TRUE;
+                tp->t_chasee = &player;
 		greed = TRUE;
 	    }
 	}
@@ -296,8 +309,8 @@ LEVTYPE ltype;          /* designates type of level to create */
  * put_things: put potions and scrolls on this level
  */
 
-put_things(ltype)
-LEVTYPE ltype;          /* designates type of level to create */
+void
+put_things(LEVTYPE ltype)
 {
     int i, rm, cnt;
     struct linked_list  *item;
@@ -379,7 +392,8 @@ LEVTYPE ltype;          /* designates type of level to create */
 		    turn_off(*tp, ISFRIENDLY);
 		    turn_on(*tp, ISMEAN);
 		    if (off(*tp, CANINWALL)) {
-			tp->t_dest = hero;
+                        tp->t_ischasing = TRUE;
+                        tp->t_chasee = &player;
 			turn_on(*tp, ISRUN);
 		    }
 		}
@@ -445,6 +459,7 @@ int throne_monster = 0; /* identifies monster type in THRONE room */
 /*
  * do_throne: Put a monster's throne room and monsters on the screen
  */
+void
 do_throne()
 {
     coord   mp;
@@ -510,8 +525,8 @@ do_throne()
  * create_lucifer - special surprise on the way back up create Lucifer
  * with more than the usual god abilities
  */
-create_lucifer(stairs)
-coord   *stairs;
+void
+create_lucifer(coord *stairs)
 {
     struct linked_list  *item = new_item(sizeof(struct thing));
     struct thing    *tp = THINGPTR(item);

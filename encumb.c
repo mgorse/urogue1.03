@@ -16,7 +16,6 @@
     All rights reserved.
 
     See the file LICENSE.TXT for full copyright and licensing information.*/
-*/
 
 #include "rogue.h"
 
@@ -65,6 +64,7 @@ updpack()
 /*
  * packweight: Get the total weight of the hero's pack
  */
+int
 packweight()
 {
 	struct linked_list  *pc;
@@ -85,8 +85,8 @@ packweight()
 /*
  * itemweight: Get the weight of an object
  */
-itemweight(wh)
-struct object   *wh;
+int
+itemweight(struct object *wh)
 {
 	int weight = wh->o_weight;  /* get base weight */
 	int ac;
@@ -114,6 +114,7 @@ struct object   *wh;
  * playenc: Get hero's carrying ability above norm 50 units per point of STR
  * over 8 300 units per plus on R_CARRYING 1000 units for TR_PURSE
  */
+int
 playenc()
 {
 	int ret_val = (pstats.s_str - 8) * 50;
@@ -127,6 +128,7 @@ playenc()
 /*
  * totalenc: Get total weight that the hero can carry
  */
+int
 totalenc()
 {
 	int wtotal = 1500 + playenc();
@@ -143,42 +145,6 @@ totalenc()
 }
 
 
-
-/*
- * whgtchk: See if the hero can carry his pack
- */
-
-wghtchk()
-{
-	int dropchk, err = TRUE;
-	char	ch;
-	int wghtchk();
-
-	inwhgt = TRUE;
-	if (pstats.s_pack > pstats.s_carry) {
-	    ch = mvwinch(stdscr, hero.y, hero.x);
-	    if ((ch != FLOOR && ch != PASSAGE)) {
-		extinguish(wghtchk);
-		fuse(wghtchk, TRUE, 1, AFTER);
-		inwhgt = FALSE;
-		return;
-	    }
-	    extinguish(wghtchk);
-	    msg("Your pack is too heavy for you.");
-	    do {
-		dropchk = drop((struct linked_list *) NULL);
-		if (dropchk == FALSE) {
-		    mpos = 0;
-		    msg("You must drop something.");
-		}
-		if (dropchk == TRUE)
-		    err = FALSE;
-	    } while (err);
-	}
-	inwhgt = FALSE;
-}
-
-
 /*
  * hitweight: Gets the fighting ability according to current weight This
  * returns a  +2 hit for very light pack weight This returns a  +1 hit for
@@ -186,6 +152,7 @@ wghtchk()
  * weight -2 hit for very heavy pack weight
  */
 
+int
 hitweight()
 {
 	return (3 - foodlev);

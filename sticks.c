@@ -28,8 +28,8 @@
  */
 
 #include <ctype.h>
+#include <string.h>
 #include "rogue.h"
-#include "death.h"
 
 /*
  * for WS_HIT, WS_WEB, etc
@@ -77,8 +77,8 @@ char    *bolt_name;
 #define CANCEMASK ( 0 )
 #define CANCFMASK ( 0 )
 
-fix_stick(cur)
-struct object   *cur;
+void
+fix_stick(struct object *cur)
 {
     if (strcmp(ws_type[cur->o_which], "staff") == 0) {
 	cur->o_weight = 100;
@@ -118,10 +118,8 @@ struct object   *cur;
  * which:   which WS_STICK (-1 means ask from pack)
  * flags:   ISBLESSED, ISCURSED
  */
-do_zap(zapper, which, flags)
-struct thing    *zapper;
-int which;
-int flags;
+void 
+do_zap(struct thing *zapper, int which, int flags)
 {
     struct linked_list  *item, *nitem;
     struct object   *obj, *nobj;
@@ -133,8 +131,6 @@ int flags;
     bool    cursed = flags & ISCURSED;
     bool    is_stick = (which < 0 ? TRUE : FALSE);
     bool    got_one = TRUE;
-    int bff_zappable();
-    object  *get_object();
 
     if (zapper != &player) {
 	monster_do_zap(zapper, which, flags);
@@ -258,7 +254,7 @@ int flags;
 		/* unsuffocate player */
 		if (on(*tp, DIDSUFFOCATE)) {
 		    turn_off(*tp, DIDSUFFOCATE);
-		    extinguish(suffocate);
+		    extinguish_fuse(FUSE_SUFFOCATE);
 		}
 
 		if (which == WS_POLYMORPH) {
@@ -315,7 +311,7 @@ int flags;
 		    if (!cursed && charmed)
 			turn_on(*tp, ISCHARMED);
 		    if (off(*tp, ISRUN))
-			runto(&delta, &hero);
+			chase_it(&delta, &player);
 		    if (isalpha(mvwinch(cw, y, x)))
 			mvwaddch(cw, y, x, tp->t_type);
 		    tp->t_oldch = oldch;
@@ -368,9 +364,7 @@ int flags;
 		    /* Now move the monster */
 		    if (isalpha(mvwinch(cw, y, x)))
 			mvwaddch(cw, y, x, tp->t_oldch);
-		    tp->t_dest = hero;
-		    turn_on(*tp, ISRUN);
-		    turn_off(*tp, ISDISGUISE);
+                    chase_it(&tp->t_pos, &player);
 		    mvwaddch(mw, y, x, ' ');
 		    mvwaddch(mw, tp->t_pos.y, tp->t_pos.x, tp->t_oldch);
 		    if (tp->t_pos.y != y || tp->t_pos.x != x)
@@ -406,7 +400,7 @@ int flags;
 		}
 		else {
 		    seemsg("The missile hits the %s", mname);
-		    runto(&obolt.o_pos, &hero);
+		    chase_it(&obolt.o_pos, &player);
 		    summon_help(tp, NOFORCE);
 		}
 	    }
@@ -480,7 +474,7 @@ int flags;
 		}
 		delta.y = y;
 		delta.x = x;
-		runto(&delta, &hero);
+		chase_it(&delta, &player);
 	    }
 	when    WS_CHARGE:
 	    if (know_items[TYP_STICK][which] != TRUE && is_stick) {
@@ -613,7 +607,7 @@ int flags;
 		}
 		delta.y = y;
 		delta.x = x;
-		runto(&delta, &hero);
+		chase_it(&delta, &player);
 	    }
 	    else
 		nothing_message(flags);
@@ -634,7 +628,7 @@ int flags;
 			nothing_message(flags);
 		    delta.y = y;
 		    delta.x = x;
-		    runto(&delta, &hero);
+		    chase_it(&delta, &player);
 		}
 		else {
 		    if (is_stick)
@@ -672,7 +666,7 @@ int flags;
 				    new_monster(titem, (short) tp->t_index, &mp, NOMAXSTATS);
 				    th = THINGPTR(titem);
 				    turn_on(*th, ISMEAN);
-				    runto(&mp, &hero);
+				    chase_it(&mp, &player);
 				}
 			    }
 			}
@@ -680,7 +674,7 @@ int flags;
 		    delta.y = y;
 		    delta.x = x;
 		    turn_on(*tp, ISMEAN);
-		    runto(&delta, &hero);
+		    chase_it(&delta, &player);
 		}
 		else {  /* if its a UNIQUE it might still live */
 		    if (is_stick)
@@ -695,7 +689,7 @@ int flags;
 			else {
 			    delta.y = y;
 			    delta.x = x;
-			    runto(&delta, &hero);
+			    chase_it(&delta, &player);
 			    if (on(*tp, CANSUMMON))
 				summon_help(tp, FORCE);
 			    else
@@ -737,7 +731,7 @@ int flags;
 			turn_on(*tp, ISINVIS);
 			turn_on(*tp, ISRUN);
 			turn_off(*tp, ISDISGUISE);
-			runto(&tp->t_pos, &hero);
+			chase_it(&tp->t_pos, &player);
 			zapped = TRUE;
 		    }
 		}
@@ -845,7 +839,7 @@ int flags;
 	    ch = winat(obolt.o_pos.y, obolt.o_pos.x);
 
 	    if (isalpha(ch)) {
-		if (save_throw(tp))
+		if (save_throw(VS_MAGIC, tp))
 		    seemsg("The %s evades your web.", mname);
 		else {
 		    seemsg("The %s is webbed.", mname);
@@ -921,8 +915,8 @@ int flags;
  * drain: Do drain hit points from player shtick
  */
 
-drain(ymin, ymax, xmin, xmax)
-int ymin, ymax, xmin, xmax;
+void
+drain(int ymin, int ymax, int xmin, int xmax)
 {
     int i, j, count;
     struct thing    *ick;
@@ -965,12 +959,9 @@ int ymin, ymax, xmin, xmax;
 /*
  * charge a wand for wizards.
  */
-char    *
-charge_str(obj)
-struct object   *obj;
+char *
+charge_str(struct object *obj, char *buf)
 {
-    static char buf[20];
-
     if (!(obj->o_flags & ISKNOW))
 	buf[0] = '\0';
     else if (terse)
@@ -988,14 +979,14 @@ struct object   *obj;
  * direction
  */
 
-bool
-shoot_bolt(shooter, start, dir, get_points, reason, name, damage)
-struct thing    *shooter;
-coord   start, dir;
-bool    get_points;     /* should player get exp points? */
-short   reason;         /* reason for dying */
-char    *name;          /* fire, nerve, cold, etc */
-int damage;         /* make zapee suffer */
+void
+shoot_bolt(struct thing    *shooter,
+           coord   start,
+           coord   dir,
+           bool    get_points,     /* should player get exp points? */
+           int     reason,         /* reason for dying */
+           char    *name,          /* fire, nerve, cold, etc */
+           int damage)         /* make zapee suffer */
 {
     char    dirch, ch;
     bool    change;
@@ -1229,21 +1220,22 @@ int damage;         /* make zapee suffer */
 			    msg("You feel yourself moving %sslower.",
 				on(player, ISSLOW) ? "even " : "");
 			    if (on(player, ISSLOW))
-				lengthen(noslow, rnd(10) + 4);
+				lengthen_fuse(FUSE_NOSLOW, rnd(10) + 4);
 			    else {
 				turn_on(player, ISSLOW);
 				player.t_turn = TRUE;
-				fuse(noslow, 0, rnd(10) + 4, AFTER);
+				light_fuse(FUSE_NOSLOW, 0, rnd(10) + 4, AFTER);
 			    }
 			}
 			else if (strcmp(name, "fear gas") == 0) {
 			    if (!(on(player, ISFLEE) &&
-				  SAME_POS(player.t_dest,shooter->t_pos)) &&
-				(shooter != &player)) {
+				  (player.t_chasee == shooter) &&
+				(shooter != &player))) {
 				if (off(player, SUPERHERO)
 				    && player.t_ctype != C_PALADIN) {
 				    turn_on(player, ISFLEE);
-				    player.t_dest = shooter->t_pos;
+                                    player.t_chasee = shooter;
+                                    player.t_ischasing = FALSE;
 				    msg("The fear gas terrifies you.");
 				}
 				else
@@ -1286,7 +1278,7 @@ int damage;         /* make zapee suffer */
 		    ret_val = TRUE;
 		}
 		else if (get_points) {
-		    runto(&spotpos[x], &hero);
+		    chase_it(&spotpos[x], &player);
 		    summon_help(tp, NOFORCE);
 		}
 	    }
@@ -1307,17 +1299,13 @@ int damage;         /* make zapee suffer */
 		}
 	    }
 	}
-
-    return (ret_val);
 }
 
 /*
  * monster_do_zap - monster gets the effect
  */
-monster_do_zap(zapper, which, flags)
-struct thing    *zapper;
-int which;
-int flags;
+void
+monster_do_zap(struct thing *zapper, int which, int flags)
 {
     struct stats    *curp = &(zapper->t_stats);
     struct stats    *maxp = &(zapper->maxstats);
@@ -1400,41 +1388,41 @@ int flags;
 }
 
 struct powers {
-    int p_flag;
-    int     (*p_function) ();
+    unsigned long p_flag;
+    int fuse_id;
 };
 
 /*
  * Order in which powers will attempt to be cancelled
  */
 struct powers   player_powers[] = {
-    {ISHASTE, nohaste},
-    {ISELECTRIC, unelectrify},
-    {CANINWALL, unphase},
-    {CANFLY, unfly},
-    {ISINVIS, appear},
-    {CANREFLECT, ungaze},
-    {ISDISGUISE, undisguise},
-    {HASMSHIELD, unmshield},
-    {ISREGEN, unregen},
-    {CANSEE, unsee},
-    {NOCOLD, uncold},
-    {NOFIRE, unhot},
-    {HASOXYGEN, unbreathe},
-    {HASSHIELD, unshield},
-    {-1, NULL}
+    { ISHASTE,    FUSE_NOHASTE     },
+    { ISELECTRIC, FUSE_UNELECTRIFY },
+    { CANINWALL,  FUSE_UNPHASE     },
+    { CANFLY,     FUSE_UNFLY       },
+    { ISINVIS,    FUSE_APPEAR      },
+    { CANREFLECT, FUSE_UNGAZE      },
+    { ISDISGUISE, FUSE_UNDISGUISE  },
+    { HASMSHIELD, FUSE_UNMSHIELD   },
+    { ISREGEN,    FUSE_UNREGEN     },
+    { CANSEE,     FUSE_UNSEE       },
+    { NOCOLD,     FUSE_UNCOLD      },
+    { NOFIRE,     FUSE_UNHOT       },
+    { HASOXYGEN,  FUSE_UNBREATHE   },
+    { HASSHIELD,  FUSE_UNSHIELD    },
+    { 0xffff,         FUSE_NULL        }
 };
 
-cancel_player(not_unique)
-bool    not_unique;
+void
+cancel_player(bool not_unique)
 {
     struct powers   *pp;
     bool    no_effect = TRUE;
 
-    for (pp = player_powers; pp->p_flag != -1; pp++) {
+    for (pp = player_powers; pp->p_flag != 0xffff; pp++) {
 	if (on(player, pp->p_flag) && !save(VS_MAGIC)) {
-	    (*pp->p_function) ();
-	    extinguish(pp->p_function);
+            fuses[pp->fuse_id].func(NULL);
+            extinguish_fuse(pp->fuse_id);
 	    no_effect = FALSE;
 	    if (not_unique) /* Gods might cancel everything */
 		break;

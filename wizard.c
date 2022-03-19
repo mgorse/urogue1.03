@@ -28,13 +28,15 @@
  */
 
 #include <ctype.h>
+#include <malloc.h>
+#include <string.h>
 #include "rogue.h"
 
 /*
  * whatis: What a certain object is
  */
 
-int
+void
 whatis(struct linked_list *what)
 {
     struct object *obj;
@@ -83,6 +85,7 @@ whatis(struct linked_list *what)
  * teleport: Bamf the hero someplace else
  */
 
+void
 teleport()
 {
     struct room *new_rp, *old_rp = roomin(&hero);
@@ -176,22 +179,18 @@ teleport()
 	}
     }
 
-    extinguish(suffocate);
-    player.t_no_move = 0;   /* not trapped anymore */
-
-    extinguish(suffocate);
+    extinguish_fuse(FUSE_SUFFOCATE);
     player.t_no_move = 0;   /* not trapped anymore */
 
     count = 0;
     running = FALSE;
-    flushout();
-    return rm;
 }
 
 /*
  * passwd: see if user knows password
  */
 
+bool
 passwd()
 {
     char    *sp, c;
