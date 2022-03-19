@@ -112,10 +112,11 @@ get_obj(int type, int ident)
 void
 free_ident(struct object *obj_p)
 {
-    linked_list *list_p;
+    linked_list *list_p, *nxt;
 
 
-    for (list_p = ident_list; list_p != NULL; list_p = next(list_p)) {
+    for (list_p = ident_list; list_p != NULL; list_p = nxt) {
+	nxt = next(list_p);
 	if (obj_p == OBJPTR(list_p)) {
 	    _detach(&ident_list, list_p);   /* unlink it from the
 			     * list */
