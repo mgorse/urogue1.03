@@ -221,7 +221,6 @@ new_level(LEVTYPE ltype)
 	    if (rnd(3) == 0)
 		turn_off(player, BLESSFOOD);
 	}
-if (on(player, BLESSMAGIC)) {printf("hi: %d %d\n", player.t_flags[3], test_on(&player, BLESSMAGIC));; getch();}
 	if (player.t_ctype == C_MAGICIAN ||
 	    player.t_ctype == C_ILLUSION ||
 	    on(player, BLESSMAGIC) && rnd(5) == 0) {
