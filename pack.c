@@ -423,8 +423,7 @@ get_object(struct linked_list *container,     /* what container has what we want
 	ESCAPE_EXIT(response);
 	if (response == '*') {
 	    mpos = 0;
-	    apply_to_bag(container, type, bff_p, baf_print_item,
-		(void *)(long)type);
+	    apply_to_bag(container, type, bff_p, baf_print_item, &type);
 	    end_line();
 	    msg("What do you want to %s (* for list)?", purpose);
 	    response = readchar();  /* want real response */

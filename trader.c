@@ -272,20 +272,19 @@ buy_more:
 		mvwaddstr(hw, 10, 0, "Do you want the cursed, blessed, or normal version? (c, b, n) [n]");
 		touchwin(hw);
 		wrefresh(hw);
-		switch (readchar()) {
+		blessed = cursed = FALSE;
+	plus_or_minus = 0;
+		switch (readcharw(hw)) {
 		    when    ESCAPE:
 			discard(item);
 			itemtype = '\0';
 			goto buy_more;
 		    when 'c':
 			cursed = TRUE;
-			plus_or_minus = 0;
 		    when 'b':
 			blessed = TRUE;
-			plus_or_minus = 0;
 		    when 'n':
 		    case ' ':
-			plus_or_minus = 0;
 		    otherwise:
 			wstandout(hw);
 			mvwaddstr(hw, 11, 0, "Type 'c' for cursed, 'b' for blessed, or 'n' for normal");
@@ -351,7 +350,7 @@ buy_more:
 	wclrtoeol(hw);
 	touchwin(hw);
 	wrefresh(hw);
-	switch (readchar()) {
+	switch (readcharw(hw)) {
 	    when    ESCAPE:
 	    case 'n':
 		msg("");
@@ -406,7 +405,7 @@ sell_it()
 	mvwaddstr(hw, 12, 0, "Do you want to sell it? [n] ");
 	touchwin(hw);
 	wrefresh(hw);
-	switch (readchar()) {
+	switch (readcharw(hw)) {
 	    case 'y':
 		break;
 	    otherwise:
