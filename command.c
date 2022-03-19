@@ -666,7 +666,7 @@ do_after_effects()
     }
 
     /* Time to enforce weapon and armor restrictions */
-    if (rnd(9999) == 0)
+    if (rnd(100000000 / (level * level)) == 0)
         if (((cur_weapon == NULL) ||
     	(wield_ok(&player, cur_weapon, NOMESSAGE)))
     	&& ((cur_armor == NULL) ||
