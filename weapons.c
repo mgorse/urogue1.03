@@ -1,8 +1,6 @@
 /*
     weapons.c  -  Functions for dealing with problems brought about by weapons
    
-    Last Modified: Dec 30, 1990
-
     UltraRogue
     Copyright (C) 1984, 1985, 1986, 1987, 1990 Herb Chong
     All rights reserved.

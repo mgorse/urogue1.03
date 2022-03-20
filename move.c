@@ -1,8 +1,6 @@
 /*
     move.c  -  Hero movement commands
    
-    Last Modified: Dec 29, 1990
-
     UltraRogue
     Copyright (C) 1984, 1985, 1986, 1987, 1990 Herb Chong
     All rights reserved.

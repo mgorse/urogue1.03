@@ -1,8 +1,6 @@
 /*
     monsters.c  -  File with various monster functions in it
    
-    Last Modified: 11/03/86
-
     UltraRogue
     Copyright (C) 1984, 1985, 1986 Herb Chong
     All rights reserved.

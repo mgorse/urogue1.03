@@ -1,8 +1,6 @@
 /*
     daemons.c  -  All the daemon and fuse functions are in here
 
-    Last Modified: Dec 28, 1990
-
     UltraRogue
     Copyright (C) 1984, 1985, 1986, 1987, 1990 Herb Chong
     All rights reserved.

@@ -1,8 +1,6 @@
 /*
     newlvl.c  -  Dig and draw a new level
    
-    Last Modified: Jan 5, 1991
-
     UltraRogue
     Copyright (C) 1984, 1985, 1986, 1987, 1990, 1991 Herb Chong
     All rights reserved.

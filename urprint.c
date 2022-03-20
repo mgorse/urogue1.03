@@ -1,8 +1,6 @@
 /*
     urprint.c  -
 
-    Last Modified: 11/03/86
-
     UltraRogue
     Copyright (C) 1986 Herb Chong
     All rights reserved.    

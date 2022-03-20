@@ -1,8 +1,6 @@
 /*
     vers.c  -  version number
    
-    Last Modified: 12/25/90
-
     UltraRogue
     Copyright (C) 1984, 1985, 1986, 1987, 1990 Herb Chong
     All rights reserved.

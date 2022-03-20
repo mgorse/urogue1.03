@@ -1,8 +1,6 @@
 /*
     magic.c  -  This file contains functions for casting magic spells
 
-    Last Modified: Jan 5, 1991
-
     UltraRogue
     Copyright (C) 1984, 1985, 1986, 1987, 1990, 1991 Herb Chong
     All rights reserved.    
