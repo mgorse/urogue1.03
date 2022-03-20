@@ -74,7 +74,6 @@ get_all(struct linked_list *top)
 	if (!add_pack(top, FALSE))
 	    return;
 
-	rem_obj(top, FALSE);
 	top = node;
     }
 }
@@ -143,6 +142,23 @@ get_stack(struct linked_list *item)
 	return (item);
 }
 
+static bool
+item_is_on_floor (struct linked_list *item)
+{
+    struct linked_list *l1, *l2;
+    struct object *obj;
+
+    for (l1 = lvl_obj; l1; l1 = l1->l_next) {
+        if (l1 == item)
+            return TRUE;
+        obj = OBJPTR(item);
+        for (l2 = obj->next_obj; l2; l2 = l2->l_next)
+            if (l2 == item)
+                return TRUE;
+    }
+    return FALSE;
+}
+
 /*
  * add_pack: Pick up an object and add it to the pack.  If the argument is
  * non-null use it as the linked_list pointer instead of getting it off the
@@ -153,7 +169,7 @@ add_pack(struct linked_list *item, bool print_message)
 {
     struct object   *obj, *op;
     char    ch;
-    bool    from_floor;
+    bool    from_floor = FALSE;
     unsigned int    index = 0;
 
     int bff_group();
@@ -166,15 +182,14 @@ add_pack(struct linked_list *item, bool print_message)
 	    msg("Nothing to pick up.");
 	    return (FALSE);
 	}
-    }
-    else
-	from_floor = FALSE;
 
-    if (from_floor) {
 	item = get_stack(item);
 	if (!item)
 	    return (FALSE);
     }
+
+    if (!from_floor)
+        from_floor = item_is_on_floor (item);
 
     obj = OBJPTR(item);
 

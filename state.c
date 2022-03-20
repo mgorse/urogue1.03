@@ -396,14 +396,14 @@ ur_write_object(FILE *savef, struct object *o)
 
     if (o->o_bag)
         other = 1;
-    else if (o->next_obj)
+    if (o->next_obj && (o->next_obj->l_prev == NULL) )
         other |= 2;
 
     ur_write_int(savef,other);
 
-    if (o->o_bag)
+    if (other & 1)
         ur_write_bag(savef,o->o_bag);
-    if (o->next_obj && (o->next_obj->l_prev == NULL) )
+    if (other & 2)
         ur_write_object_stack(savef, o->next_obj);
 }
 

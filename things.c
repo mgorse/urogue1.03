@@ -268,11 +268,16 @@ add_obj(struct linked_list *item, int y, int x)
     if (llptr) {
 	objptr = OBJPTR(llptr);
 	attach((objptr->next_obj), item);
+	objptr = OBJPTR(item);
+	objptr->o_pos.y = y;
+	objptr->o_pos.x = x;
     }
     else {
 	attach(lvl_obj, item);
 	objptr = OBJPTR(item);
 	objptr->next_obj = NULL;
+	objptr->o_pos.y = y;
+	objptr->o_pos.x = x;
 	mvaddch(y, x, objptr->o_type);
     }
 }
