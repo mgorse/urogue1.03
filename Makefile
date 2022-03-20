@@ -32,6 +32,8 @@ OBJS=	armor.o artifact.o bag.o chase.o command.o daemon.o daemons.o encumb.o\
 	pack.o passages.o player.o potions.o random.o rings.o rip.o rooms.o\
 	save.o scrolls.o state.o status.o sticks.o things.o trader.o vers.o\
 	weapons.o wizard.o
+
+CC = gcc
 CFLAGS=	-g
 
 urogue: $(OBJS)
@@ -40,48 +42,5 @@ urogue: $(OBJS)
 urprint: urprint.o magicitm.o monsdata.o
 	cc -o urprint urprint.o magicitm.o monsdata.o
 
-armor.o: armor.c rogue.h
-artifact.o: artifact.c  rogue.h
-bag.o: bag.c rogue.h
-chase.o: chase.c rogue.h 
-command.o: command.c rogue.h
-daemon.o: daemon.c rogue.h
-daemons.o: daemons.c rogue.h 
-encumb.o: encumb.c rogue.h
-fight.o: fight.c rogue.h
-getplay.o: getplay.c rogue.h
-ident.o: ident.c rogue.h
-init.o: init.c rogue.h
-io.o: io.c rogue.h 
-list.o: list.c rogue.h
-magic.o: magic.c rogue.h
-magicitm.o: magicitm.c rogue.h
-main.o: main.c rogue.h 
-maze.o: maze.c rogue.h
-misc.o: misc.c rogue.h
-monsdata.o: monsdata.c rogue.h
-monsters.o: monsters.c rogue.h 
-move.o: move.c rogue.h 
-newlvl.o: newlvl.c rogue.h
-options.o: options.c rogue.h
-pack.o: pack.c rogue.h
-passages.o: passages.c rogue.h
-player.o: player.c rogue.h
-potions.o: potions.c rogue.h
-properti.o: properti.c rogue.h
-random.o: random.c
-rings.o: rings.c rogue.h
-rip.o: rip.c rogue.h 
-rogue.o: rogue.c rogue.h
-rooms.o: rooms.c rogue.h 
-save.o: save.c rogue.h
-scrolls.o: scrolls.c rogue.h 
-status.o: status.c rogue.h
-sticks.o: sticks.c rogue.h
-things.o: things.c rogue.h
-trader.o: trader.c rogue.h
-urprint.o: urprint.c rogue.h
-	cc $(CFLAGS) -c urprint.c
-vers.o: vers.c
-weapons.o: weapons.c rogue.h
-wizard.o: wizard.c rogue.h
+%.o: %.c $(HDRS)
+	$(CC) $(CFLAGS) -c -o $@ $<
