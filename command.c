@@ -24,7 +24,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "rogue.h"
-#include "score.h"
 
 /*
  * command: Process the user commands
