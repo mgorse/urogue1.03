@@ -271,7 +271,6 @@ buy_more:
 		touchwin(hw);
 		wrefresh(hw);
 		blessed = cursed = FALSE;
-	plus_or_minus = 0;
 		switch (readcharw(hw)) {
 		    when    ESCAPE:
 			discard(item);
@@ -279,10 +278,13 @@ buy_more:
 			goto buy_more;
 		    when 'c':
 			cursed = TRUE;
+	plus_or_minus = 0;
 		    when 'b':
 			blessed = TRUE;
+	plus_or_minus = 0;
 		    when 'n':
 		    case ' ':
+	plus_or_minus = 0;
 		    otherwise:
 			wstandout(hw);
 			mvwaddstr(hw, 11, 0, "Type 'c' for cursed, 'b' for blessed, or 'n' for normal");
