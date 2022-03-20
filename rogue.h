@@ -88,8 +88,8 @@
 #define winat(y, x) (mvwinch(mw, y, x)==' '?mvwinch(stdscr, y, x):winch(mw))
 #define debug if (wizard && wiz_verbose) msg
 #define DISTANCE(y1, x1, y2, x2) ((x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1))
-#define OBJPTR(what)    ((*what).data.obj)
-#define THINGPTR(what)  ((*what).data.th)
+#define OBJPTR(what)    ((what) ? (*what).data.obj : NULL)
+#define THINGPTR(what)  ((what) ? (*what).data.th : NULL)
 #define when break;case
 #define otherwise break;default
 #define until(expr) while(!(expr))
