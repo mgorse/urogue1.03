@@ -36,10 +36,10 @@ CC = gcc
 CFLAGS=	-g
 
 urogue: $(OBJS)
-	cc -g -o urogue $(OBJS) -lncurses -lcrypt
+	$(CC) -g -o urogue $(OBJS) -lncurses -lcrypt
 
 urprint: urprint.o magicitm.o monsdata.o
-	cc -o urprint urprint.o magicitm.o monsdata.o
+	$(CC) -o urprint urprint.o magicitm.o monsdata.o
 
 %.o: %.c $(HDRS)
 	$(CC) $(CFLAGS) -c -o $@ $<
