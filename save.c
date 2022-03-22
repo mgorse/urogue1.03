@@ -120,13 +120,7 @@ restore(char *file)
 
     while(playing)
     {
-        do_daemons(BEFORE);
-        do_fuses(BEFORE);
-
         command();  /* Command execution */
-
-        if (after)
-            do_after_effects();
     }
 
     fatal("");

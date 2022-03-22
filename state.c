@@ -669,7 +669,7 @@ ur_fixup_monsters(struct linked_list *l)
 {
     while(l != NULL)
     {
-        if (l->data.th->t_chasee == (void *) -1L)
+        if (l->data.th->chasee_index == -1L)
             l->data.th->t_chasee = &player;
         else
             l->data.th->t_chasee = find_thing(mlist, l->data.th->chasee_index);
@@ -1329,7 +1329,7 @@ restore_file(FILE *savef)
     beast = find_thing(mlist, i);
 
     ur_fixup_monsters(fam_ptr);
-    ur_fixup_monsters(fam_ptr);
+    ur_fixup_monsters(mlist);
 
     DUMPSTRING
     i = ur_read_int(savef);
