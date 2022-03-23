@@ -152,3 +152,40 @@ max_print()
     return (sizeof(print_letters) - 2); /* 1 for blank and 1 for EOS
 			 * string */
 }
+
+/*
+ * add_to_ident_list()
+ *
+ * Adds an object with an existing identifier to the ident list. Used when
+ * restoring saved games.
+ */
+void
+add_to_ident_list(struct object *obj_p)
+{
+    int obj_type = obj_p->o_type;
+    linked_list *list_p;    /* pointer into ident_list */
+    int last_id = 0;
+    struct object   *tmp_obj_p;
+    struct linked_list  *new_place_p = NULL;
+
+
+    if (identifier(obj_p) == 0)
+	return; /* should never happen */
+
+    for (list_p = ident_list; list_p != NULL; list_p = next(list_p)) {
+	tmp_obj_p = OBJPTR(list_p);
+	if (tmp_obj_p->o_type == obj_type) {
+	    if (identifier(tmp_obj_p) > identifier(obj_p))
+		break;
+	    else if (identifier(tmp_obj_p) >= last_id) {
+		new_place_p = list_p;
+		last_id = identifier(tmp_obj_p);
+	    }
+	}
+    }
+
+    list_p = (struct linked_list *) new_alloc(sizeof(*list_p));
+    _attach_after(&ident_list, new_place_p, list_p);
+    list_p->data.obj = obj_p;
+}
+

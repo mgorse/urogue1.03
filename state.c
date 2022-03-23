@@ -450,6 +450,9 @@ ur_read_object(FILE *savef)
     if (other & 2)
         o->next_obj = ur_read_object_stack(savef);
 
+    if (o->o_ident > 0)
+	add_to_ident_list(o);
+
     return(o);
 }
 

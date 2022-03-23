@@ -1307,6 +1307,7 @@ int     get_ident(struct object *obj_p);
 void    free_ident(struct object *obj_p);
 int     unprint_id(char print_id);
 int     max_print(void);
+void add_to_ident_list(struct object *obj_p);
 
 /* init.c */
 
