@@ -36,6 +36,7 @@
 */
 
 #include <assert.h>
+#include <malloc.h>
 #include <stdlib.h>
 #include <string.h>
 #define NCURSES_INTERNALS
@@ -1113,21 +1114,33 @@ save_file(FILE *savef)
 
     ur_write_string(savef, save_format);
 
-    ur_write_string(savef,"\nScroll Names\n");
-    for(i = 0; i < MAXSCROLLS; i++)
+    ur_write_string(savef,"\nScrolls\n");
+    for(i = 0; i < MAXSCROLLS; i++) {
         ur_write_string(savef,s_names[i]);
+        ur_write_short(savef,(short) know_items[TYP_SCROLL][i]);
+	ur_write_string(savef, guess_items[TYP_SCROLL][i]);
+    }
 
-    ur_write_string(savef,"\nPotion Colors\n");
-    for(i = 0; i < MAXPOTIONS; i++)
+    ur_write_string(savef,"\nPotions\n");
+    for(i = 0; i < MAXPOTIONS; i++) {
         ur_write_string(savef,p_colors[i]);
+        ur_write_short(savef,(short) know_items[TYP_POTION][i]);
+	ur_write_string(savef, guess_items[TYP_POTION][i]);
+    }
 
-    ur_write_string(savef,"\nRing Stones\n");
-    for(i = 0; i < MAXRINGS; i++)
+    ur_write_string(savef,"\nRings\n");
+    for(i = 0; i < MAXRINGS; i++) {
         ur_write_string(savef,r_stones[i]);
+        ur_write_short(savef,(short) know_items[TYP_RING][i]);
+	ur_write_string(savef, guess_items[TYP_RING][i]);
+    }
 
-    ur_write_string(savef,"\nStick types\n");
-    for(i = 0; i < MAXSTICKS; i++)
+    ur_write_string(savef,"\nSticks\n");
+    for(i = 0; i < MAXSTICKS; i++) {
         ur_write_string(savef,ws_made[i]);
+        ur_write_short(savef,(short) know_items[TYP_STICK][i]);
+	ur_write_string(savef, guess_items[TYP_STICK][i]);
+    }
 
     ur_write_string(savef,"\nStick types\n");
     for(i = 0; i < MAXSTICKS; i++)
@@ -1137,6 +1150,7 @@ save_file(FILE *savef)
     ur_write_int(savef, MAXTRAPS);
     for(i = 0; i < MAXTRAPS; i++)
         ur_write_trap(savef, &traps[i]);
+
 
     ur_write_string(savef,"\nRooms on this level\n");
     ur_write_int(savef, MAXROOMS);
@@ -1272,24 +1286,39 @@ restore_file(FILE *savef)
     }
 
     DUMPSTRING
-    for(i=0; i < MAXSCROLLS; i++)
+    for(i=0; i < MAXSCROLLS; i++) {
+	if (s_names[i] != NULL) free(s_names[i]);
         s_names[i] = ur_read_string(savef);
+        know_items[TYP_SCROLL][i] = (bool) ur_read_short(savef);
+        guess_items[TYP_SCROLL][i] = ur_read_string(savef);
+    }
 
     DUMPSTRING
-    for(i=0; i < MAXPOTIONS; i++)
+    for(i=0; i < MAXPOTIONS; i++) {
+	if (p_colors[i] != NULL) free(p_colors[i]);
         p_colors[i] = ur_read_string(savef);
+        know_items[TYP_POTION][i] = (bool) ur_read_short(savef);
+        guess_items[TYP_POTION][i] = ur_read_string(savef);
+    }
 
     DUMPSTRING
-    for(i=0; i < MAXRINGS; i++)
+    for(i=0; i < MAXRINGS; i++) {
         r_stones[i] = ur_read_string(savef);
+        know_items[TYP_RING][i] = (bool) ur_read_short(savef);
+        guess_items[TYP_RING][i] = ur_read_string(savef);
+    }
 
     DUMPSTRING
-    for(i=0; i < MAXSTICKS; i++)
+    for(i=0; i < MAXSTICKS; i++) {
         ws_made[i] = ur_read_string(savef);
+        know_items[TYP_STICK][i] = (bool) ur_read_short(savef);
+        guess_items[TYP_STICK][i] = ur_read_string(savef);
+    }
 
     DUMPSTRING
     for(i=0; i < MAXSTICKS; i++)
         ws_type[i] = ur_read_string(savef);
+
 
     DUMPSTRING
     i = ur_read_int(savef);
