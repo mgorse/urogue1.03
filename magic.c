@@ -243,7 +243,7 @@ incant(struct thing *caster, coord shoot_dir)
 
     if (!is_player && (sp = pick_monster_spell(caster)) == NULL)
 	    return;
-    else {
+    else if (is_player) {
 	int num_spells = -1;    /* num of spells cheap enough */
 	int sort_spells();  /* for qsort() */
 	static struct spells    sorted_spells[MAX_SPELLS];
