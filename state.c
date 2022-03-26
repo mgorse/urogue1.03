@@ -150,7 +150,7 @@ int  door_stop   = FALSE;
 int  jump        = TRUE;
 int  doorstop    = TRUE;
 int  firstmove   = FALSE;
-int  askme       = FALSE;
+int  askme       = TRUE;
 char whoami[2 * LINELEN];           /* Name of player  */
 char fruit[2 * LINELEN];            /* Favorite fruit  */
 char file_name[2 * LINELEN];        /* Save file name  */
