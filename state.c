@@ -1099,6 +1099,8 @@ ur_read_daemons(FILE *savef)
                 d_list[i].d_arg = find_thing(mlist, id);
 
             if (d_list[i].d_arg == NULL)
+		printf("Can't find doctor with id %d. This shouldn't happen.\n", id);
+            if (d_list[i].d_arg == NULL)
                 d_list[i].d_type = EMPTY;
         }
 
@@ -1459,6 +1461,37 @@ restore_file(FILE *savef)
     str = ur_read_string(savef);
     strcpy(score_file,str);
     ur_free(str);
+
+    /*
+     * Shouldn't happen
+     */
+    if (find_slot(DAEMON, DAEMON_DOCTOR) == NULL) {
+	msg("Paging the doctor.");
+	start_daemon(DAEMON_DOCTOR, &player, AFTER);
+	if (find_slot(DAEMON, DAEMON_DOCTOR) == NULL) {
+	    endwin();
+	    printf("\nSorry, the doctor is out.\n");
+	    exit(1);
+	}
+    }
+    if (find_slot(DAEMON, DAEMON_STOMACH) == NULL) {
+	msg("Waking up your stomach.");
+	start_daemon(DAEMON_STOMACH, 0, AFTER);
+	if (find_slot(DAEMON, DAEMON_STOMACH) == NULL) {
+	    endwin();
+	    printf("\nSorry, your stomach has gone away.\n");
+	    exit(1);
+	}
+    }
+    if (find_slot(DAEMON, DAEMON_RUNNERS) == NULL) {
+	msg("Waking up monsters");
+	start_daemon(DAEMON_RUNNERS, 0, AFTER);
+	if (find_slot(DAEMON, DAEMON_RUNNERS) == NULL) {
+	    endwin();
+	    printf("\nSorry, the monsters are too tired to play\n");
+	    exit(1);
+	}
+    }
 
     DUMPSTRING
     return(TRUE);

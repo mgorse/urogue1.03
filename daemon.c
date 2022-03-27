@@ -88,6 +88,7 @@ d_slot(void)
         if (dev->d_type == EMPTY)
             return(dev);
 
+    msg("PANIC: No more demon slots");
     return(NULL);
 }
 
