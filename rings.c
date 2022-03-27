@@ -201,6 +201,7 @@ ring_eat(int hand)
 	    case R_VREGEN:
 		ret_val = rnd(pstats.s_lvl > 10 ? 10
 		    : pstats.s_lvl);
+		break;
 	    case R_ALERT:
 	    case R_SUSABILITY:
 		return 1;
@@ -210,8 +211,10 @@ ring_eat(int hand)
 		    ret_val = -ac + 1;
 		else if (rnd((ac / 2) + 2) == 0)
 		    ret_val = -1 - ac;
+		break;
 	    case R_SEARCH:
 		ret_val = rnd(100) < 33;
+		break;
 	}
     }
     ret_val += rnd(luck);
