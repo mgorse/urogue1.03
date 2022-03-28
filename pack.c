@@ -52,8 +52,10 @@ swap_top(struct linked_list *top, struct linked_list *node)
     detach((obt->next_obj), node);  /* Take it out of the stack */
     attach(lvl_obj, node);  /* and put it into the level */
     detach(lvl_obj, top);   /* Remove item from level */
-    if (obn->next_obj = obt->next_obj)
-	obn->next_obj->l_prev = NULL;
+    obn->next_obj = obt->next_obj;
+    obt->next_obj = NULL;  /* no longer top of a stack */
+    if (obn->next_obj)
+        obn->next_obj->l_prev = NULL;
     attach((obn->next_obj), top);
 }
 

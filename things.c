@@ -111,6 +111,7 @@ inv_name(struct object *obj, bool lowercase)
 	    pb = &prbuf[strlen(prbuf)];
 	    if (obj->o_flags & ISSILVER)
 		sprintf(pb, "silver ");
+	    pb = &prbuf[strlen(prbuf)];
 	    if (obj->o_flags & ISTWOH)
 		sprintf(pb, "two-handed ");
 	    pb = &prbuf[strlen(prbuf)];
@@ -232,8 +233,10 @@ rem_obj(struct linked_list *item, int dis)
 	detach((objptr->next_obj), llptr);
 	attach(lvl_obj, llptr);
 	op = OBJPTR(llptr);
-	if (op->next_obj = objptr->next_obj)
-	    objptr->next_obj->l_prev = NULL;
+	        op->next_obj = objptr->next_obj;
+        objptr->next_obj = NULL;  /* no longer top of a stack */
+        if (op->next_obj)
+            op->next_obj->l_prev = NULL;
 	y = op->o_pos.y;
 	x = op->o_pos.x;
 	if (cansee(y, x))
