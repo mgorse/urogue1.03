@@ -642,7 +642,7 @@ wake_monster(int y, int x)
 	if (on(*tp, CANHUH)) {  /* Confusion */
 	    if (on(player, CANREFLECT)) {
 		msg("You reflect the bewildering stare of the %s.", mname);
-		if (save_throw(VS_MAGIC, tp)) {
+		if (!save_throw(VS_MAGIC, tp)) {
 		    msg("The %s is confused!", mname);
 		    turn_on(*tp, ISHUH);
 		}
@@ -669,7 +669,7 @@ wake_monster(int y, int x)
 	if (on(*tp, CANSNORE)) {    /* Sleep */
 	    if (on(player, CANREFLECT)) {
 		msg("You reflect the lethargic glance of the %s", mname);
-		if (save_throw(VS_PARALYZATION, tp)) {
+		if (!save_throw(VS_PARALYZATION, tp)) {
 		    msg("The %s falls asleep!", mname);
 		    tp->t_no_move += SLEEPTIME;
 		}
@@ -691,7 +691,7 @@ wake_monster(int y, int x)
 	    turn_off(*tp, CANFRIGHTEN);
 	    if (on(player, CANREFLECT)) {
 		msg("The %s sees its reflection. ", mname);
-		if (save_throw(VS_MAGIC, tp)) {
+		if (!save_throw(VS_MAGIC, tp)) {
 		    msg("The %s is terrified by its reflection!", mname);
 		    turn_on(*tp, ISFLEE);
 		}
@@ -717,7 +717,7 @@ wake_monster(int y, int x)
 	    turn_off(*tp, LOOKSLOW);
 	    if (on(player, CANREFLECT)) {
 		msg("You reflect the mournful glare of the %s.", mname);
-		if (save_throw(VS_MAGIC, tp)) {
+		if (!save_throw(VS_MAGIC, tp)) {
 		    msg("The %s is slowing down!", mname);
 		    turn_on(*tp, ISSLOW);
 		}
@@ -747,7 +747,7 @@ wake_monster(int y, int x)
 	    turn_off(*tp, CANBLIND);
 	    if (on(player, CANREFLECT)) {
 		msg("You reflect the blinding stare of the %s.", mname);
-		if (save_throw(VS_WAND, tp)) {
+		if (!save_throw(VS_WAND, tp)) {
 		    msg("The %s is blinded!", mname);
 		    turn_on(*tp, ISHUH);
 		}
@@ -767,7 +767,7 @@ wake_monster(int y, int x)
 	    turn_off(*tp, LOOKSTONE);
 	    if (on(player, CANREFLECT)) {
 		msg("You reflect the flinty look of the %s.", mname);
-		if (save_throw(VS_PETRIFICATION, tp)) {
+		if (!save_throw(VS_PETRIFICATION, tp)) {
 		    msg("The %s suddenly stiffens", mname);
 		    tp->t_no_move += STONETIME;
 		}
@@ -891,6 +891,7 @@ id_monst(char monster)
 void
 check_residue(struct thing *tp)
 {
+    struct linked_list  *item;
 
     /*
      * Take care of special abilities
@@ -918,6 +919,19 @@ check_residue(struct thing *tp)
 	    rp->r_flags &= ~HASFIRE;
 	    light(&tp->t_pos);
 	}
+    }
+
+    /* everyone stop chasing me */
+    for (item = mlist; item != NULL; item = next(item))
+    {
+        struct thing *th = THINGPTR(item);
+        if (th->t_chasee == tp) {
+            th->t_chasee = th;
+            th->t_ischasing = FALSE;
+            msg("%s: Where did that %s go?",
+                monsters[th->t_index].m_name,
+                monsters[tp->t_index].m_name);
+        }
     }
 }
 
