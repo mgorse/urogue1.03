@@ -1180,6 +1180,13 @@ save_file(FILE *savef)
     monster = find_thing_index(mlist, beast);
     ur_write_int(savef, monster);
 
+    /* which monsters still exist, eg. not genocided */
+    ur_write_int(savef, nummonst);
+    for(i = 0; i <= nummonst+2; i++) {
+        ur_write_short(savef, (short) monsters[i].m_normal);
+        ur_write_short(savef, (short) monsters[i].m_wander);
+    }
+
     ur_write_string(savef,"\nItems in use by rogue\n");
     weapon = find_list_index(player.t_pack, cur_weapon);
     armor  = find_list_index(player.t_pack, cur_armor);
@@ -1189,6 +1196,8 @@ save_file(FILE *savef)
     for(i=0; i < 10; i++)
     {
         if (cur_ring[i] == NULL)
+	    ring = -1;
+	else
             ring = find_list_index(player.t_pack, cur_ring[i]);
 
         ur_write_int(savef, ring);
@@ -1365,6 +1374,19 @@ restore_file(FILE *savef)
     ur_fixup_monsters(fam_ptr);
     ur_fixup_monsters(mlist);
 
+    /* fixup player */
+    if (player.chasee_index == -1L)
+        player.t_chasee = &player;
+    else
+        player.t_chasee = find_thing(mlist, player.chasee_index);
+
+    /* which monsters still exist, eg. not genocided */
+    i = ur_read_int(savef);
+    for(i = 0; i <= nummonst+2; i++) {
+        monsters[i].m_normal = (bool) ur_read_short(savef);
+        monsters[i].m_wander = (bool) ur_read_short(savef);
+    }
+
     DUMPSTRING
     i = ur_read_int(savef);
     cur_weapon = find_object(player.t_pack, i);
@@ -1455,6 +1477,7 @@ restore_file(FILE *savef)
     str = ur_read_string(savef);
     strcpy(fruit,str);
     ur_free(str);
+    fd_data[1].mi_name = fruit; /* put fruit in the right place */
     str = ur_read_string(savef);
     strcpy(file_name,str);
     ur_free(str);
