@@ -105,6 +105,9 @@ addmsg(const char *fmt, ...)
 void
 endmsg(void)
 {
+    if ((int) strlen(mbuf) > COLS)
+        mbuf[COLS] = '\0';  /* stop overruns */
+
     strcpy(msgbuf[msg_index], mbuf);
 
     msg_index = ++msg_index % 10;
@@ -112,7 +115,7 @@ endmsg(void)
     if (mpos)
     {
         wmove(cw, 0, mpos);
-        wprintw(cw, (char *) morestr);
+        waddnstr(cw, morestr, COLS - mpos);  /* stop overruns */
         wrefresh(cw);
         wait_for(' ');
     }
