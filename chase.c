@@ -50,6 +50,17 @@ do_chase(struct thing *th, bool flee)
 	mon_attack;     /* TRUE means find a monster to hit */
     char    sch;
 
+    if (!is_monster(th)) {
+        msg("Workaround dead monster bug");
+        return;
+    }
+    if (th->t_ischasing == TRUE && th->t_chasee != &player &&
+            !is_monster(th->t_chasee)) {
+        th->t_ischasing = FALSE;
+        msg("Workaround dead chasee bug");
+        return;
+    }
+
     if (!th->t_ischasing)
         return;
 
@@ -496,6 +507,14 @@ chase(struct thing *tp, coord *ee, bool flee)
     else if (shoot_dir && on(*tp, CANCAST) &&
 	 (off(player, ISDISGUISE) || (rnd(tp->t_stats.s_lvl) > 6))) {
 	incant(tp, *shoot_dir);
+        /*
+         * If the monster's spell bounces back and kills it,
+         * then 'tp' is no longer valid, so just return.
+         */
+        if (!curr_mons) {
+            debug("The monster seems to have killed itself.");
+            return(FALSE);
+        }
 	tp->t_nxtpos = *er;
 	dist = DISTANCE(tp->t_nxtpos.y, tp->t_nxtpos.x, ee->y, ee->x);
     }
@@ -700,6 +719,12 @@ chase(struct thing *tp, coord *ee, bool flee)
 	turn_off(*tp, ISINWALL);
     }
 
+    if (tp->t_ischasing == TRUE && tp->t_chasee != &player &&
+            !is_monster(tp->t_chasee)) {
+        tp->t_ischasing = FALSE;
+        msg("Workaround another dead chasee bug");
+    }
+
     if (off(*tp, ISFLEE) &&
 	(!SAME_POS(tp->t_chasee->t_pos,hero) || off(player, ISINWALL) || on(*tp, CANINWALL)))
 	return (dist != 0);
@@ -743,6 +768,30 @@ find_mons(int y, int x)
 	if (th->t_pos.y == y && th->t_pos.x == x)
 	    return item;
     }
+    return NULL;
+}
+
+/*
+ * is_monster: Is this a current monster?
+ */
+
+bool
+is_monster(struct thing *th)
+{
+    struct linked_list *item;
+
+    if (th == NULL)
+        return NULL;
+
+    for (item = mlist; item != NULL; item = next(item))
+    {
+        if (th == THINGPTR(item))
+            return TRUE;
+    }
+
+    if (th == THINGPTR(fam_ptr))
+        return TRUE;
+
     return NULL;
 }
 

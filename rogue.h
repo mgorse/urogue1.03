@@ -1078,6 +1078,7 @@ bool straight_shot(int ery, int erx, int eey, int eex, coord *shooting);
 struct linked_list *get_hurl(struct thing *tp);
 struct object *pick_weap(struct thing *tp);
 bool can_blink(struct thing *tp);
+extern bool is_monster(struct thing *th);
 
 /* command.c */
 
