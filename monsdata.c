@@ -2443,7 +2443,7 @@ struct monster monsters[] = {
 {"demi-god (Zagyg the Unpredictable)",	/* Dragon #70 */
 		100,	TRUE,	TRUE,	'Z',	"23",
 		{ISUNIQUE, CANBRANDOM, CANSUMMON, CANWIELD, HIGHFRIENDLY, ISGOD},
-		"greater god (Boccob)", 1,
+		"greater god (Boccob the Uncaring)", 1,
 		110,
 		{23,	59000L, 26, -2,		HPT("0d8+121"),
 		"4d8"}},
