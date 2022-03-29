@@ -76,6 +76,7 @@ save_game(void)
     /* write out [compressed?] file */
 
     save_file(savefd);
+    fclose(savefd);
     return(TRUE);
 }
 
