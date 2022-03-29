@@ -1182,7 +1182,7 @@ save_file(FILE *savef)
 
     /* which monsters still exist, eg. not genocided */
     ur_write_int(savef, nummonst);
-    for(i = 0; i <= nummonst+2; i++) {
+    for(i = 0; i < nummonst+2; i++) {
         ur_write_short(savef, (short) monsters[i].m_normal);
         ur_write_short(savef, (short) monsters[i].m_wander);
     }
@@ -1295,6 +1295,7 @@ restore_file(FILE *savef)
         printf("Sorry, versions don't match.\n");
         return(FALSE);
     }
+    ur_free(str);
 
     DUMPSTRING
     for(i=0; i < MAXSCROLLS; i++) {
@@ -1314,6 +1315,7 @@ restore_file(FILE *savef)
 
     DUMPSTRING
     for(i=0; i < MAXRINGS; i++) {
+	if (r_stones[i] != NULL) free(r_stones[i]);
         r_stones[i] = ur_read_string(savef);
         know_items[TYP_RING][i] = (bool) ur_read_short(savef);
         guess_items[TYP_RING][i] = ur_read_string(savef);
@@ -1321,6 +1323,7 @@ restore_file(FILE *savef)
 
     DUMPSTRING
     for(i=0; i < MAXSTICKS; i++) {
+	if (ws_made[i] != NULL) free(ws_made[i]);
         ws_made[i] = ur_read_string(savef);
         know_items[TYP_STICK][i] = (bool) ur_read_short(savef);
         guess_items[TYP_STICK][i] = ur_read_string(savef);
@@ -1382,7 +1385,7 @@ restore_file(FILE *savef)
 
     /* which monsters still exist, eg. not genocided */
     i = ur_read_int(savef);
-    for(i = 0; i <= nummonst+2; i++) {
+    for(i = 0; i < nummonst+2; i++) {
         monsters[i].m_normal = (bool) ur_read_short(savef);
         monsters[i].m_wander = (bool) ur_read_short(savef);
     }
@@ -1477,6 +1480,7 @@ restore_file(FILE *savef)
     str = ur_read_string(savef);
     strcpy(fruit,str);
     ur_free(str);
+    free(fd_data[1].mi_name); /* allocated in main.c */
     fd_data[1].mi_name = fruit; /* put fruit in the right place */
     str = ur_read_string(savef);
     strcpy(file_name,str);
