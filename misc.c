@@ -357,8 +357,6 @@ eat()
 
     if ((obj = get_object(pack, "eat", FOOD, NULL)) == NULL)
 	return;
-    if (--obj->o_count == 0)
-	discard_pack(obj);
     switch (obj->o_which) {
 	when    FD_RATION:
             amount = (int)(scale * (HUNGERTIME + rnd(400) - 200));
@@ -400,8 +398,10 @@ eat()
 	no_command = HOLDTIME;
     }
     hungry_state = F_OK;
-    updpack();
     if (obj == cur_weapon)
+    if (--obj->o_count == 0)
+	discard_pack(obj);
+    updpack();
 	cur_weapon = NULL;
 }
 
