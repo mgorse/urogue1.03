@@ -497,10 +497,10 @@ chase(struct thing *tp, coord *ee, bool flee)
 	shoot_bolt(tp, *er, *shoot_dir, (tp == THINGPTR(fam_ptr)),
 	       tp->t_index, breath, roll(tp->t_stats.s_lvl, 6));
 
-	tp->t_nxtpos = *er;
-	dist = DISTANCE(tp->t_nxtpos.y, tp->t_nxtpos.x, ee->y, ee->x);
 	if (!curr_mons)
 	    return (TRUE);
+	tp->t_nxtpos = *er;
+	dist = DISTANCE(tp->t_nxtpos.y, tp->t_nxtpos.x, ee->y, ee->x);
     }
 
     /*
