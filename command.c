@@ -25,6 +25,8 @@
 #include <string.h>
 #include "rogue.h"
 
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+
 /*
  * command: Process the user commands
  */
@@ -591,6 +593,7 @@ void
 do_after_effects()
 {
     int i;
+    int prob;
 
        /*
         * Kick off the rest of the daemons and fuses
@@ -732,7 +735,8 @@ do_after_effects()
     	}
         }
 
-    if (rnd(9999) == 0) {
+    prob = MAX(9999, 10000000 / (level * level));
+    if (rnd(prob) == 0) {
         new_level(THRONE);
         fighting = running = after = FALSE;
         summoned = TRUE;
