@@ -103,9 +103,9 @@ missile(int ydelta, int xdelta, struct linked_list *item, struct thing *tp)
 	    discard(item);
 	}
 	else {
-	    fall(&player, item, TRUE);
 	    if (obj->o_flags & CANRETURN)
 		msg("You have %s.", inv_name(obj, LOWERCASE));
+	    fall(&player, item, TRUE);
 	}
     }
     else if (obj->o_flags & ISOWNED) {
