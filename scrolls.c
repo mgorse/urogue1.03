@@ -1037,7 +1037,7 @@ creat_mons(struct thing    *person,    /* Where to create next to */
 	/* If the monster is on a trap, trap it */
 	if (isatrap(mvinch(mp->y, mp->x))) {
 	    debug("Monster trapped during creat_mons.");
-	    be_trapped(THINGPTR(nitem), mp);
+	    be_trapped((struct thing **)&nitem, mp);
 	}
 	light(&hero);
 	return (nitem);

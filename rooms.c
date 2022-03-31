@@ -187,11 +187,11 @@ do_rooms()
 		     * it
 		     */
 		    if (isatrap(mvinch(mpos->y, mpos->x)))
-			be_trapped(THINGPTR(nitem), &mp);
-		    if (on(*tp, ISFRIENDLY))
+			be_trapped((struct thing **)&nitem, &mp);
+		    if (nitem && on(*tp, ISFRIENDLY))
 			turn_on(*(THINGPTR(nitem)),
 			    ISFRIENDLY);
-		    else
+		    else if (nitem)
 			turn_off(*(THINGPTR(nitem)),
 			    ISFRIENDLY);
 		}

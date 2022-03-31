@@ -1063,7 +1063,7 @@ struct object *select_bag(linked_list *bag_p, int type,
 
 /* chase.c */
 
-void do_chase(struct thing *th, bool flee);
+void do_chase(struct thing **th_p, bool flee);
 void chase_it(coord *runner, struct thing *th);
 void chase_it(coord *runner, struct thing *th);
 int chase(struct thing *tp, coord *ee, bool flee);
@@ -1518,7 +1518,7 @@ void do_move(int dy, int dx);
 void light(coord *cp);
 bool  blue_light(int flags);
 char  show(int y, int x);
-char be_trapped(struct thing *th, coord *tc);
+char be_trapped(struct thing **th_p, coord *tc);
 void dip_it(void);
 struct trap *trap_at(int y, int x);
 void set_trap(struct thing *tp, int y, int x);

@@ -32,8 +32,9 @@
 #define DOORPENALTY 1       /* Moving out of current room */
 
 void
-do_chase(struct thing *th, bool flee)
+do_chase(struct thing **th_p, bool flee)
 {
+    struct thing *th = *th_p;
     struct room *rer, *ree; /* room of chaser, room of
 			 * chasee */
     struct room *old_room,      /* old room of monster */
@@ -291,7 +292,9 @@ do_chase(struct thing *th, bool flee)
 	debug("Monster trapped by %c.", sch);
 	if (cansee(th->t_nxtpos.y, th->t_nxtpos.x))
 	    th->t_oldch = sch;
-	be_trapped(th, &th->t_nxtpos);
+	be_trapped(th_p, &th->t_nxtpos);
+	if (!*th_p)
+	    return;
     }
 
 
