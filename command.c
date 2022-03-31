@@ -371,7 +371,7 @@ command()
 		/*
 		 * wizard commands
 		 */
-		when 22:    /* ctrl-w */
+		when 23:    /* ctrl-w */
 		    after = FALSE;
 		    if (!wizard) {
 			if (canwizard)
@@ -461,9 +461,9 @@ command()
 
 			    if (cur_weapon == NULL || cur_weapon->o_which != CLAYMORE) {
 				item = spec_item(WEAPON, CLAYMORE, 10, 10);
-				add_pack(item, NOMESSAGE);
 				cur_weapon = OBJPTR(item);
 				cur_weapon->o_flags |= ISKNOW;
+				add_pack(item, NOMESSAGE);
 			    }
 
 			    /*
