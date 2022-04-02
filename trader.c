@@ -21,7 +21,7 @@
 #include <string.h>
 #include "rogue.h"
 
-static int	effective_purse;/* Paladins have a 10% tithe */
+#define EFFECTIVE_PURSE ((player.t_ctype==C_PALADIN)?(9 * purse / 10) : purse)
 static int	num_transactions;
 static int	cur_worth;  /* How much the shop item costs */
 
@@ -33,8 +33,6 @@ do_post()
 {
 	bool	bad_letter = FALSE;
 
-	effective_purse = ((player.t_ctype == C_PALADIN) ?
-	    (9 * purse / 10) : purse);
 	num_transactions = 0;
 	cur_worth = 0;
 
@@ -77,6 +75,7 @@ do_post()
 		when 'l':
 		    wclear(hw);
 		    wrefresh(hw);
+		    wrefresh(cw);
 		    return;
 		otherwise:
 		    bad_letter = TRUE;
@@ -172,6 +171,7 @@ buy_more:
 	    switch (get_str(buf, hw)) {
 		when	QUIT:
 		case ESCAPE:
+		    if (is_spell) wclear(hw);
 		    itemtype = '\0';
 		    goto buy_more;
 	    }
@@ -184,19 +184,19 @@ buy_more:
 		    case TYP_SCROLL:
 		    case TYP_FOOD:
 			for (i = 0, m_item = magic_array; i < array_size; i++, m_item++)
-			    if (!is_spell && m_item->mi_worth > 0) {
+			    if (m_item->mi_worth > 0) {
 				sprintf(buf, "%3d) %8d %s", i, m_item->mi_worth, m_item->mi_name);
 				add_line(buf);
 			    }
 		    when    TYP_ARMOR:
 			for (i = 0; i < array_size; i++)
-			    if (!is_spell && armors[i].a_worth > 0) {
+			    if (armors[i].a_worth > 0) {
 				sprintf(buf, "%3d) %8d %s", i, armors[i].a_worth, armors[i].a_name);
 				add_line(buf);
 			    }
 		    when    TYP_WEAPON:
 			for (i = 0; i < array_size; i++)
-			    if (!is_spell && weaps[i].w_worth > 0) {
+			    if (weaps[i].w_worth > 0) {
 				sprintf(buf, "%3d) %8d %s", i, weaps[i].w_worth, weaps[i].w_name);
 				add_line(buf);
 			    }
@@ -335,13 +335,15 @@ buy_more:
 
 	cur_worth = get_worth(obj) * (luck + level / 15 + 1);
 	describe_it(obj);
-	if (cur_worth > effective_purse) {
+	if (cur_worth > EFFECTIVE_PURSE) {
 	    wstandout(hw);
-	    mvwaddstr(hw, 12, 0, "Unfortunately, you can't afford it.");
+	    mvwaddstr(hw, 12, 0, "Unfortunately, you can't afford it. --more--");
 	    wstandend(hw);
 	    wclrtoeol(hw);
 	    touchwin(hw);
 	    wrefresh(hw);
+	    (void) readcharw(hw);
+	    wclear(hw);
 	    itemtype = '\0';
 	    goto buy_more;
 	}
@@ -362,11 +364,12 @@ buy_more:
 	 * The hero bought the item here
 	 */
 	mpos = 0;
-	if (add_pack(item, NOMESSAGE) && !is_spell) {
+	if (add_pack(item, NOMESSAGE)) {
 	    purse -= cur_worth; /* take his money */
-	    effective_purse -= cur_worth;
-	    ++num_transactions;
-	    trans_line();   /* show remaining deals */
+	    if (!is_spell) {
+		++num_transactions;
+		trans_line();   /* show remaining deals */
+	    }
 	    switch (which_type) {
 		when	TYP_RING:
 		case TYP_STICK:
@@ -374,6 +377,12 @@ buy_more:
 		case TYP_POTION:
 		    know_items[which_type][which_one] = TRUE;
 	    }
+	}
+	if (is_spell) {
+	    wclear(hw);
+	    wrefresh(hw);
+	    touchwin(cw);
+	    wrefresh(cw);
 	}
 }
 
@@ -419,7 +428,6 @@ sell_it()
 	rem_pack(obj);
 	purse += cur_worth; /* give him his money */
 	++num_transactions;
-	effective_purse += cur_worth;
 	sprintf(buf, "Sold %s.	Hit space to continue.",
 	    inv_name(obj, LOWERCASE));
 	discard(item);
@@ -592,7 +600,7 @@ trans_line()
 	    sprintf(buf, "You have no money left.");
 	else if (!wizard)
 	    sprintf(buf, "You have %d transactions and %d gold pieces remaining.",
-		max(0, (adorned ? MAXPURCH + 4 : MAXPURCH) - num_transactions), effective_purse);
+		max(0, (adorned ? MAXPURCH + 4 : MAXPURCH) - num_transactions), EFFECTIVE_PURSE);
 	else
 	    sprintf(buf, "You have infinite transactions remaining.");
 	mvwaddstr(hw, ur_lines - 2, 0, buf);
