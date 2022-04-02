@@ -399,10 +399,10 @@ eat()
     }
     hungry_state = F_OK;
     if (obj == cur_weapon)
+	cur_weapon = NULL;
     if (--obj->o_count == 0)
 	discard_pack(obj);
     updpack();
-	cur_weapon = NULL;
 }
 
 /*
