@@ -186,12 +186,16 @@ do_rooms()
 		     * If the monster is on a trap, trap
 		     * it
 		     */
-		    if (isatrap(mvinch(mpos->y, mpos->x)))
-			be_trapped(THINGPTR(nitem), &mp);
-		    if (on(*tp, ISFRIENDLY))
+		    if (isatrap(mvinch(mpos->y, mpos->x))) {
+			struct thing *tmp = THINGPTR(nitem);
+			be_trapped(&tmp, &mp);
+			if (!tmp)
+			    nitem = NULL;
+		    }
+		    if (nitem && on(*tp, ISFRIENDLY))
 			turn_on(*(THINGPTR(nitem)),
 			    ISFRIENDLY);
-		    else
+		    else if (nitem)
 			turn_off(*(THINGPTR(nitem)),
 			    ISFRIENDLY);
 		}

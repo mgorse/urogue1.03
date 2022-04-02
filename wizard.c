@@ -192,7 +192,7 @@ bool
 passwd()
 {
     char    *sp, c;
-    char    buf[2 * LINELEN], *crypt();
+    char    buf[2 * LINELEN];
 
     msg("Wizard's Password:");
     mpos = 0;
@@ -207,5 +207,5 @@ passwd()
     if (sp == buf)
 	return FALSE;
     *sp = '\0';
-    return (strcmp("pswd", crypt(buf, 123)) == 0);
+    return (strcmp("pswd", buf) == 0);
 }

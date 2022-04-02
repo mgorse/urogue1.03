@@ -1036,8 +1036,11 @@ creat_mons(struct thing    *person,    /* Where to create next to */
 	chase_it(mp, &player);
 	/* If the monster is on a trap, trap it */
 	if (isatrap(mvinch(mp->y, mp->x))) {
+	    struct thing *tp = THINGPTR(nitem);
 	    debug("Monster trapped during creat_mons.");
-	    be_trapped(THINGPTR(nitem), mp);
+	    be_trapped(&tp, mp);
+	    if (!tp)
+		return NULL;
 	}
 	light(&hero);
 	return (nitem);

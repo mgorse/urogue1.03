@@ -465,7 +465,9 @@ runners(daemon_arg *arg)
 	    {
                 targ.thingptr = tp;
                 doctor(&targ);
-		do_chase(tp, flee);
+		do_chase(&tp, flee);
+		if (!tp)
+		    continue;
 	    }
 
 	    if (curr_mons && (on(*tp, ISHASTE) ||
@@ -474,7 +476,9 @@ runners(daemon_arg *arg)
 	    {
         targ.thingptr = tp;
         doctor(&targ);
-	do_chase(tp, flee);
+	do_chase(&tp, flee);
+	if (!tp)
+	    continue;
 	}
 
 	    if (curr_mons)

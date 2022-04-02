@@ -25,6 +25,8 @@
 #include <string.h>
 #include "rogue.h"
 
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+
 /*
  * command: Process the user commands
  */
@@ -369,7 +371,7 @@ command()
 		/*
 		 * wizard commands
 		 */
-		when 22:    /* ctrl-w */
+		when 23:    /* ctrl-w */
 		    after = FALSE;
 		    if (!wizard) {
 			if (canwizard)
@@ -459,9 +461,9 @@ command()
 
 			    if (cur_weapon == NULL || cur_weapon->o_which != CLAYMORE) {
 				item = spec_item(WEAPON, CLAYMORE, 10, 10);
-				add_pack(item, NOMESSAGE);
 				cur_weapon = OBJPTR(item);
 				cur_weapon->o_flags |= ISKNOW;
+				add_pack(item, NOMESSAGE);
 			    }
 
 			    /*
@@ -591,6 +593,7 @@ void
 do_after_effects()
 {
     int i;
+    int prob;
 
        /*
         * Kick off the rest of the daemons and fuses
@@ -663,7 +666,7 @@ do_after_effects()
     }
 
     /* Time to enforce weapon and armor restrictions */
-    if (rnd(100000000 / (level * level)) == 0)
+    if (rnd(9999) == 0)
         if (((cur_weapon == NULL) ||
     	(wield_ok(&player, cur_weapon, NOMESSAGE)))
     	&& ((cur_armor == NULL) ||
@@ -732,7 +735,8 @@ do_after_effects()
     	}
         }
 
-    if (rnd(9999) == 0) {
+    prob = MAX(9999, 10000000 / (level * level));
+    if (rnd(prob) == 0) {
         new_level(THRONE);
         fighting = running = after = FALSE;
         summoned = TRUE;

@@ -134,7 +134,7 @@ unprint_id(char print_id)
 {
     char    *id_p;
 
-    for (id_p = print_letters; id_p != NULL; id_p++)
+    for (id_p = print_letters; *id_p; id_p++)
 	if (*id_p == print_id)
 	    break;
     return (id_p - print_letters);

@@ -142,6 +142,7 @@ do_move(int dy, int dx)
     char    ch;
     coord   old_hero;
     char    hch;
+    struct thing *pp = &player;
 
     firstmove = FALSE;
     if (player.t_no_move) {
@@ -240,7 +241,7 @@ do_move(int dy, int dx)
 	case POISONTRAP:
 	case LAIR:
 	case RUSTTRAP:
-	    ch = be_trapped(&player, &nh);
+	    ch = be_trapped(&pp, &nh);
 	    if (!is_wearing(R_LEVITATION) && off(player, CANFLY) &&
 		(old_hero.x != hero.x || old_hero.y != hero.y
 		 || pool_teleport)) {
@@ -595,8 +596,9 @@ show(int y, int x)
  */
 
 char
-be_trapped(struct thing *th, coord *tc)
+be_trapped(struct thing **th_p, coord *tc)
 {
+    struct thing *th = *th_p;
     struct trap *tp;
     char    ch, *mname;
     bool    is_player = (th == &player), can_see = cansee(tc->y, tc->x);
@@ -677,6 +679,8 @@ be_trapped(struct thing *th, coord *tc)
 		    msg("The %s fell into a trap!", mname);
 		check_residue(th);
 		remove_monster(&th->t_pos, mitem);
+		*th_p = NULL;
+		return ch;
 	    }
 	when    BEARTRAP:
 	    if (is_stealth(th)) {
@@ -999,6 +1003,8 @@ be_trapped(struct thing *th, coord *tc)
 		    msg("The %s fell into a trap!", mname);
 		check_residue(th);
 		remove_monster(&th->t_pos, mitem);
+		*th_p = NULL;
+		return ch;
 	    }
 	when    FIRETRAP:{
 	    struct room *rp = roomin(&hero);
@@ -1025,6 +1031,8 @@ be_trapped(struct thing *th, coord *tc)
 			msg("The %s is burned to death by the flames.", mname);
 		    check_residue(th);
 		    remove_monster(&th->t_pos, mitem);
+		    *th_p = NULL;
+		    return ch;
 		}
 		else if (on(*th, NOFIRE)) {
 		    if (can_see)
@@ -1038,6 +1046,8 @@ be_trapped(struct thing *th, coord *tc)
 			    msg("The %s is burned to death by the flames.", mname);
 			check_residue(th);
 			remove_monster(&th->t_pos, mitem);
+			*th_p = NULL;
+			return ch;
 		    }
 		    else if (th->t_stats.s_intel < rnd(20)) {
 			if (can_see)
@@ -1083,6 +1093,8 @@ be_trapped(struct thing *th, coord *tc)
 		    msg("The %s fell into a trap!", mname);
 		check_residue(th);
 		remove_monster(&th->t_pos, mitem);
+		*th_p = NULL;
+		return ch;
 	    }
 	when    RUSTTRAP:
 	    if (is_player) {
