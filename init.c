@@ -522,14 +522,16 @@ init_fd()
 void
 init_colors()
 {
-    register int    i;
-    register char   *str;
+    int    i, j;
+    bool used[NCOLORS];
 
+    memset (&used, 0, sizeof(used));
     for (i = 0; i < maxpotions; i++) {
 	do {
-	    str = rainbow[rnd(NCOLORS)];
-	} until(isupper(*str));
-	p_colors[i]    = strdup(str);
+            j = rnd(NCOLORS);
+	} while (used[j]);
+	used[j] = TRUE;
+	p_colors[i]    = strdup(rainbow[j]);
 	p_colors[i][0] = (char) tolower(p_colors[i][0]);
 
 	know_items[TYP_POTION][i] = FALSE;
@@ -582,14 +584,16 @@ init_names()
 void
 init_stones()
 {
-    register int    i;
-    register char   *str;
+    int    i, j;
+    bool used[NSTONES];
 
+    memset (&used, 0, sizeof(used));
     for (i = 0; i < maxrings; i++) {
 	do {
-	    str = stones[rnd(NSTONES)];
-	} until(isupper(*str));
-	r_stones[i]    = strdup(str);
+	    j = rnd(NSTONES);
+	} while (used[j]);
+	used[j] = TRUE;
+	r_stones[i]    = strdup(stones[j]);
 	r_stones[i][0] = (char) tolower( r_stones[i][0] );
 	know_items[TYP_RING][i] = FALSE;
 	guess_items[TYP_RING][i] = NULL;
@@ -606,22 +610,32 @@ init_stones()
 void
 init_materials()
 {
-    register int    i;
-    register char   *str;
+    int    i, j;
+    char   *str;
+	bool used_metal[NMETAL], used_wood[NWOOD];
 
+    memset (&used_metal, 0, sizeof(used_metal));
+    memset (&used_wood, 0, sizeof(used_wood));
     for (i = 0; i < maxsticks; i++) {
+	str = NULL;
 	do {
-	    if (rnd(100) > 50) {
-		str = metal[rnd(NMETAL)];
-		if (isupper(*str))
+	    if (rnd(100) >= 50) {
+		j = rnd(NMETAL);
+		if (!used_metal[j]) {
 		    ws_type[i] = "wand";
+		    str = metal[j];
+		    used_metal[j] = TRUE;
+		}
 	    }
 	    else {
-		str = wood[rnd(NWOOD)];
-		if (isupper(*str))
+		j = rnd(NWOOD);
+		if (!used_wood[j]) {
 		    ws_type[i] = "staff";
+		    str = wood[j];
+		    used_wood[j] = TRUE;
+		}
 	    }
-	} until(isupper(*str));
+	} until(str);
 	ws_made[i] = strdup(str);
 	ws_made[i][0] = (char) tolower(ws_made[i][0]);
 	know_items[TYP_STICK][i] = FALSE;
