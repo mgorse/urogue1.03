@@ -1356,7 +1356,8 @@ restore_file(FILE *savef)
         ur_free(r);
     }
     i = ur_read_int(savef);
-    oldrp = &rooms[i];
+    if (i >= 0)
+        oldrp = &rooms[i];
 
     DUMPSTRING
     p = ur_read_thing(savef);
