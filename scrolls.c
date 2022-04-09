@@ -562,7 +562,7 @@ read_scroll(struct thing *reader, int which, int flags)
 	when    S_ENCHANT:{
 	    struct linked_list  *ll;
 	    struct object   *lb;
-	    int howmuch, flags;
+	    int howmuch, flags = 0;
 	    if (is_scroll && know_items[TYP_SCROLL][S_ENCHANT] == FALSE) {
 		msg("You are granted the power of enchantment.");
 		msg("You may enchant anything(weapon,ring,armor,scroll,potion)");
