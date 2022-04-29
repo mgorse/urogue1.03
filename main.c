@@ -29,6 +29,7 @@
 
 FILE *fd_score = NULL;
 int ur_lines, ur_cols;
+char home[LINELEN];
 
 /* Command line options */
 
@@ -45,6 +46,13 @@ main(int argc, char *argv[])
     int rflag = 0;
     char *nm;
 	float scale;
+
+    /* get home from environment */
+    if ((env = getenv("HOME")) != NULL)
+	strcpy(home, env);
+    else
+	strcpy(home, ".");
+    strcat(home, "/");
 
     for (x = 1; x < argc; x++)
     {

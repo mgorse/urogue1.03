@@ -31,6 +31,7 @@ static OPTION optlist[] =
 {"askme","Ask me about unidentified things (askme): ",&askme,put_bool,get_bool},
 {"doorstop","Stop running when adjacent (doorstop): ",&doorstop,put_bool,get_bool},
 {"name", "Name (name): ",               &whoami, put_str, get_string},
+{"autosave",	"Save game automatically (autosave): ", &autosave, put_bool, get_bool },
 {"fruit", "Fruit (fruit): ",            &fruit, put_str, get_string},
 {"file", "Save file (file): ",          &file_name, put_str, get_string},
 {"score", "Score file (score): ",       &score_file, put_str, get_string},

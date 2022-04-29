@@ -151,6 +151,7 @@ int  jump        = TRUE;
 int  doorstop    = TRUE;
 int  firstmove   = FALSE;
 int  askme       = TRUE;
+int autosave = TRUE;
 char whoami[2 * LINELEN];           /* Name of player  */
 char fruit[2 * LINELEN];            /* Favorite fruit  */
 char file_name[2 * LINELEN];        /* Save file name  */
@@ -1267,6 +1268,7 @@ save_file(FILE *savef)
     ur_write_int(savef, jump);
     ur_write_int(savef, firstmove);
     ur_write_int(savef, askme);
+    ur_write_int(savef, autosave);
     ur_write_string(savef,whoami);
     ur_write_string(savef,fruit);
     ur_write_string(savef,file_name);
@@ -1475,6 +1477,7 @@ restore_file(FILE *savef)
     jump = ur_read_int(savef);
     firstmove = ur_read_int(savef);
     askme = ur_read_int(savef);
+    autosave = ur_read_int(savef);
     str = ur_read_string(savef);
     strcpy(whoami,str);
     ur_free(str);

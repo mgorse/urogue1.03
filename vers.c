@@ -20,6 +20,6 @@
     See the file LICENSE.TXT for full copyright and licensing information.
 */
 
-const char *save_format = "UltraRogue Portable Save File [MG] Release 001\05";
+const char *save_format = "UltraRogue Portable Save File [MG] Release 001\06";
 char version[] = "UltraRogue 1.03 mm/dd/yy 01/21/91";
 char *release = "1.03 Alpha (01/21/91)";

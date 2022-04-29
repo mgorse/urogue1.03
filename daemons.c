@@ -199,7 +199,7 @@ swander(fuse_arg *arg)
  * rollwand: Called to roll to see if a wandering monster starts up
  */
 
-daemon
+ur_daemon
 rollwand(daemon_arg *arg)
 {
     NOOP(arg);
@@ -422,7 +422,7 @@ suffocate(fuse_arg *arg)
  * each other, this routine have been enhanced and may need more work yet
  */
 
-daemon
+ur_daemon
 runners(daemon_arg *arg)
 {
     struct linked_list  *item;
@@ -495,7 +495,7 @@ runners(daemon_arg *arg)
 /*
  * digest the hero's food
  */
-daemon
+ur_daemon
 stomach(daemon_arg *arg)
 {
     int oldfood, old_hunger;

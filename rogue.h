@@ -1114,7 +1114,7 @@ struct delayed_action
 #define FUSE   2
 
 typedef void fuse;
-typedef void daemon;
+typedef void ur_daemon;
 
 typedef union
 {
@@ -1139,7 +1139,7 @@ struct fuse
 struct daemon
 {
     int index;
-    daemon (*func)(daemon_arg *arg);
+    ur_daemon (*func)(daemon_arg *arg);
 };
 
 #define MAXDAEMONS 60
@@ -1208,10 +1208,10 @@ extern void activity(void);
 /* daemons.c */
 
 extern void doctor_spell_points(struct thing *tp);
-daemon doctor(daemon_arg *tp);
-extern daemon rollwand(daemon_arg *arg);
-daemon runners(daemon_arg *arg);
-extern daemon stomach(daemon_arg *arg);
+ur_daemon doctor(daemon_arg *tp);
+ur_daemon rollwand(daemon_arg *arg);
+ur_daemon runners(daemon_arg *arg);
+ur_daemon stomach(daemon_arg *arg);
 void swander();
 void unconfuse();
 void unscent();
@@ -1436,6 +1436,7 @@ extern char *ws_made[];     /* What sticks are made of */
 extern FILE *fd_score;
 extern int ur_lines;
 extern int ur_cols;
+extern char home[];			/* User's home directory */
 
 int   main(int argc, char *argv[]);
 void  fatal(char *s);
@@ -1741,6 +1742,7 @@ extern int firstmove;      /* First move after setting door_stop */
 extern int waswizard;      /* Was a wizard sometime */
 extern int canwizard;      /* Will be permitted to do this */
 extern int askme;          /* Ask about unidentified things */
+extern int autosave;			/* Option to save game automatically */
 extern int moving;         /* move using 'm' command */
 
 extern int inv_type;       /* Inven style. Bool so options works */

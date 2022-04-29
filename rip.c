@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <time.h>
+#include <unistd.h>
 #include "rogue.h"
 
 static struct sc_ent
@@ -377,6 +378,19 @@ score(long amount, int lvl, int flags, int monst) /*ARGSUSED*/
     }
 
     fclose(fd_score);
+
+    /*
+     * delete old autosave file when we win or quit
+     */
+    if (autosave == TRUE && flags != SCOREIT) {
+	char fname[200];
+
+        strcpy(fname, home);
+        strcat(fname, "rogue.asave");
+	if (access(fname, F_OK) == -0)
+	    unlink(fname);
+    }
+
 }
 
 void

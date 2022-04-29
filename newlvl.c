@@ -20,6 +20,8 @@
     See the file LICENSE.TXT for full copyright and licensing information.
 */
 
+#include <errno.h>
+#include <string.h>
 #include "rogue.h"
 
 int
@@ -300,6 +302,29 @@ new_level(LEVTYPE ltype)
     }
 
     status(TRUE);
+
+    if (autosave == TRUE
+	&& levtype == NORMLEV
+	&& hungry_state < F_FAINT
+	&& pstats.s_hpt > max_stats.s_hpt / 2
+	&& off(player, HASINFEST)
+	&& off(player, ISBLIND)
+	&& off(player, PERMBLIND)
+	&& off(player, HASDISEASE)) {
+	char fname[200];
+	FILE *savefd;
+
+	strcpy(fname, home);
+	strcat(fname, "rogue.asave");
+        if ((savefd = fopen(fname, "wb")) == NULL) {
+            msg("");
+            msg("Autosave error: %s.%s", strerror(errno));    /* fake perror() */
+        } else {
+	    save_file(savefd);
+	    fclose(savefd);
+        }
+
+    }
 }
 
 /*
