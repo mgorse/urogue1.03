@@ -300,7 +300,8 @@ command()
 		when 'o':
 		    after = FALSE;
 		    option();
-		    strcpy(fd_data[1].mi_name, fruit);
+		    free(fd_data[1].mi_name);
+		    fd_data[1].mi_name = strdup(fruit); /* put fruit in the right place */
 		when 18:    /* ctrl-r */
 		    after = FALSE;
 		    clearok(curscr, TRUE);

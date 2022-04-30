@@ -1484,8 +1484,8 @@ restore_file(FILE *savef)
     str = ur_read_string(savef);
     strcpy(fruit,str);
     ur_free(str);
-    free(fd_data[1].mi_name); /* allocated in main.c */
-    fd_data[1].mi_name = fruit; /* put fruit in the right place */
+    free(fd_data[1].mi_name);
+    fd_data[1].mi_name = strdup(fruit); /* put fruit in the right place */
     str = ur_read_string(savef);
     strcpy(file_name,str);
     ur_free(str);
