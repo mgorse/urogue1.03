@@ -23,6 +23,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#include <signal.h>
 #include "rogue.h"
 
 int
@@ -118,6 +119,8 @@ restore(char *file)
     touchwin(cw);
     noecho();
     nonl();
+
+    signal(SIGINT, quit_handler);
 
     while(playing)
     {
