@@ -153,13 +153,13 @@ status(int display)
 
     getyx(cw, oy, ox);
     sprintf(buf,
-    "Int:%d(%d) Str:%d(%d) Wis:%d(%d) Dex:%d(%d) Con:%d(%d) Carry:%d(%d) %d",
+    "Int:%d(%d) Str:%d(%d) Wis:%d(%d) Dex:%d(%d) Con:%d(%d) Carry:%d(%d)",
         stat_ptr->s_intel, max_ptr->s_intel,
         stat_ptr->s_str, max_ptr->s_str,
         stat_ptr->s_wisdom, max_ptr->s_wisdom,
         stat_ptr->s_dext, max_ptr->s_dext,
         stat_ptr->s_const, max_ptr->s_const,
-        stat_ptr->s_pack / 10, stat_ptr->s_carry / 10, foodlev );
+        stat_ptr->s_pack / 10, stat_ptr->s_carry / 10);
 
     mvwaddstr(cw, ur_lines - 2, 0, buf);
     wclrtoeol(cw);
