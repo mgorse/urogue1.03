@@ -192,7 +192,7 @@ do_chase(struct thing **th_p, bool flee)
      * this now contains what we want to run to this time so we run to
      * it.  If we hit it we either want to fight it or stop running
      */
-    if (!chase(th, &this, flee)) {
+    if (!chase(th, &this, flee) && curr_mons) {
 	if (ce(th->t_nxtpos, hero)) {
 	    /* merchants try to sell something */
 	    if (on(*th, CANSELL)) {
